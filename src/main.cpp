@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include <functional>
+//#include <functional>
 #include <ArduinoLog.h>
 
 #if !( defined(ESP32) ) && !( defined(ESP8266) )
@@ -7,7 +7,7 @@
 #endif
 
 #include "Configuration.h"
-//#include "wifi/WifiManager.h"
+#include "wifi/WifiManager.h"
 //#include "Device.h"
 
 #ifdef ESP32
@@ -15,7 +15,7 @@
   ADC_MODE(ADC_TOUT);
 #endif
 
-//CWifiManager *wifiManager;
+CWifiManager *wifiManager;
 //CDevice *device;
 
 unsigned long tsSmoothBoot;
@@ -37,7 +37,6 @@ void setup() {
     digitalWrite(INTERNAL_LED_PIN, LOW);
   #endif
   
-
 #ifdef LED_PIN_BOARD
   digitalWrite(LED_PIN_BOARD, HIGH);
 #endif
@@ -53,7 +52,7 @@ void setup() {
   EEPROM_loadConfig();
 
   //device = new CDevice();
-  //wifiManager = new CWifiManager(device);
+  wifiManager = new CWifiManager();
 
   Log.infoln("Initialized");
 }
@@ -68,11 +67,11 @@ void loop() {
   }
 
   //device->loop();
-  //wifiManager->loop();
+  wifiManager->loop();
 
-  //if (wifiManager->isRebootNeeded()) {
-  //  return;
-  //}
+  if (wifiManager->isRebootNeeded()) {
+    return;
+  }
  
   delay(5);
   yield();

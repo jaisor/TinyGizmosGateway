@@ -70,3 +70,6 @@ void EEPROM_clearFactoryReset();
 void EEPROM_saveConfig();
 void EEPROM_loadConfig();
 void EEPROM_wipe();
+
+uint32_t CONFIG_getDeviceId();
+unsigned long CONFIG_getUpTime();
