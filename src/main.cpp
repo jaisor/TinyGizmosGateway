@@ -8,7 +8,7 @@
 
 #include "Configuration.h"
 #include "wifi/WifiManager.h"
-//#include "Device.h"
+#include "RF24Manager.h"
 
 #ifdef ESP32
 #elif ESP8266
@@ -16,7 +16,7 @@
 #endif
 
 CWifiManager *wifiManager;
-//CDevice *device;
+CRF24Manager *rf24Manager;
 
 unsigned long tsSmoothBoot;
 bool smoothBoot;
@@ -51,8 +51,8 @@ void setup() {
 
   EEPROM_loadConfig();
 
-  //device = new CDevice();
-  wifiManager = new CWifiManager();
+  rf24Manager = new CRF24Manager();
+  wifiManager = new CWifiManager(rf24Manager);
 
   Log.infoln("Initialized");
 }
@@ -66,7 +66,7 @@ void loop() {
     Log.noticeln("Device booted smoothly!");
   }
 
-  //device->loop();
+  rf24Manager->loop();
   wifiManager->loop();
 
   if (wifiManager->isRebootNeeded()) {

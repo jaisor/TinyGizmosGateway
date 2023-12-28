@@ -41,7 +41,9 @@ const String htmlTop = "<html>\
   <body>\
   <h1>%s - Tiny Gizmos Radio Gateway</h1>";
 
-const String htmlBottom = "<br><br><hr>\
+const String htmlBottom = "<br><br>\
+  Queued messages:<br><textarea rows='4' cols='100'>%s</textarea>\
+  <br><hr>\
   <p><b>%s</b><br>\
   Uptime: <b>%02d:%02d:%02d</b><br>\
   WiFi Signal Strength: <b>%i%%</b>\
@@ -61,8 +63,6 @@ const String htmlDeviceConfigs = "<hr><h2>Configs</h2>\
   <form method='POST' action='/config' enctype='application/x-www-form-urlencoded'>\
     <label for='deviceName'>Device name:</label><br>\
     <input type='text' id='deviceName' name='deviceName' value='%s'><br>\
-    %s\
-    </select><br>\
     <br>\
     <label for='mqttServer'>MQTT server:</label><br>\
     <input type='text' id='mqttServer' name='mqttServer' value='%s'><br>\
@@ -74,8 +74,8 @@ const String htmlDeviceConfigs = "<hr><h2>Configs</h2>\
     <input type='submit' value='Set...'>\
   </form>";
 
-CWifiManager::CWifiManager(): 
-rebootNeeded(false), postedSensorUpdate(false), wifiRetries(0) {  
+CWifiManager::CWifiManager(IMessageQueue *messageQueue): 
+rebootNeeded(false), postedSensorUpdate(false), wifiRetries(0), messageQueue(messageQueue) {  
 
   sensorJson["gw_name"] = configuration.name;
 
@@ -423,5 +423,10 @@ void CWifiManager::printHTMLBottom(Print *p) {
   int min = sec / 60;
   int hr = min / 60;
 
-  p->printf(htmlBottom.c_str(), String(DEVICE_NAME), hr, min % 60, sec % 60, dBmtoPercentage(WiFi.RSSI()));
+  String q = "";
+  for(CBaseMessage *m : messageQueue->getQueue()) {
+    q += m->getString();
+  }
+
+  p->printf(htmlBottom.c_str(), q, String(DEVICE_NAME), hr, min % 60, sec % 60, dBmtoPercentage(WiFi.RSSI()));
 }

@@ -11,9 +11,12 @@
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include <Print.h>
+#include <vector>
 
 #include "BaseManager.h"
+#include "BaseMessage.h"
 #include "wifi/SensorProvider.h"
+#include "MessageQueue.h"
 
 typedef enum {
   WF_CONNECTING = 0,
@@ -37,6 +40,7 @@ private:
   AsyncWebServer* server;
   PubSubClient mqtt;
   //ISensorProvider *sensorProvider;
+  IMessageQueue *messageQueue;
 
   StaticJsonDocument<2048> sensorJson;
   StaticJsonDocument<2048> configJson;
@@ -58,7 +62,7 @@ private:
   void mqttCallback(char *topic, uint8_t *payload, unsigned int);
     
 public:
-	CWifiManager();
+	CWifiManager(IMessageQueue *messageQueue);
   virtual void loop();
 
   bool isRebootNeeded() { return rebootNeeded; }
