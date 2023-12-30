@@ -63,6 +63,7 @@ void loop() {
     smoothBoot = true;
     EEPROM_clearFactoryReset();
     tsMillisBooted = millis();
+    digitalWrite(INTERNAL_LED_PIN, LOW);
     Log.noticeln("Device booted smoothly!");
   }
 
