@@ -38,6 +38,13 @@
   #define BATTERY_SENSOR_ADC_PIN  A0
 #endif
 
+#define RADIO_RF24
+#ifdef RADIO_RF24
+  #define RF24_CHANNEL 76
+  #define RF24_DATA_RATE RF24_250KBPS
+  #define RF24_PA_LEVEL RF24_PA_HIGH
+#endif
+
 #define INTERNAL_LED_PIN LED_BUILTIN
 
 struct configuration_t {
@@ -57,6 +64,12 @@ struct configuration_t {
     char mqttTopic[128];
   #endif
 
+  #ifdef RADIO_RF24
+    uint8_t rf24_channel;
+    uint8_t rf24_data_rate;
+    uint8_t rf24_pa_level;
+  #endif
+
   char name[128];
 
   char _loaded[7]; // used to check if EEPROM was correctly set
@@ -73,3 +86,6 @@ void EEPROM_wipe();
 
 uint32_t CONFIG_getDeviceId();
 unsigned long CONFIG_getUpTime();
+
+void intLEDOn();
+void intLEDOff();

@@ -31,15 +31,7 @@ void setup() {
   Log.noticeln("Initializing...");  
 
   pinMode(INTERNAL_LED_PIN, OUTPUT);
-  #ifdef ESP32
-    digitalWrite(INTERNAL_LED_PIN, HIGH);
-  #elif ESP8266
-    digitalWrite(INTERNAL_LED_PIN, LOW);
-  #endif
-  
-#ifdef LED_PIN_BOARD
-  digitalWrite(LED_PIN_BOARD, HIGH);
-#endif
+  intLEDOn();
 
   if (EEPROM_initAndCheckFactoryReset() >= 3) {
     Log.warningln("Factory reset conditions met!");
@@ -63,7 +55,7 @@ void loop() {
     smoothBoot = true;
     EEPROM_clearFactoryReset();
     tsMillisBooted = millis();
-    digitalWrite(INTERNAL_LED_PIN, LOW);
+    intLEDOff();
     Log.noticeln("Device booted smoothly!");
   }
 
@@ -74,6 +66,6 @@ void loop() {
     return;
   }
  
-  delay(5);
+  //delay(5);
   yield();
 }

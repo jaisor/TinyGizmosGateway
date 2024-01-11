@@ -7,36 +7,57 @@
 #include <nRF24L01.h>
 #include <ArduinoLog.h>
 
-#define CE_PIN  GPIO_NUM_22
-#define CSN_PIN GPIO_NUM_21
+#include "Configuration.h"
+
+#define SERIAL_DEBUG
+#ifdef ESP32
+  #define CE_PIN  GPIO_NUM_22
+  #define CSN_PIN GPIO_NUM_21
+#elif ARDUINO_AVR_UNO
+  #define CE_PIN  9
+  #define CSN_PIN 10
+#elif SEEED_XIAO_M0
+  #define CE_PIN  D2
+  #define CSN_PIN D3
+#endif
 
 #include <Arduino.h>
 #include <Time.h>
+#include <printf.h>
 
 #include "RF24Manager.h"
 #include "Configuration.h"
 #include "BaseMessage.h"
 
-const uint8_t address[7] = "mynode";
+const uint8_t addresses[][6] = {"JAIGW", "TSIAJ", "FSIAJ", "FSIAJ"};
 
 CRF24Manager::CRF24Manager() {  
   _radio = new RF24(CE_PIN, CSN_PIN);
   
-  Log.infoln("Radio begin successfully: %t", _radio->begin());
-  _radio->setDataRate(RF24_250KBPS);
-  _radio->setPALevel(RF24_PA_LOW);
-  _radio->setAddressWidth(7);
-  _radio->openReadingPipe(0, address);
+  if (!_radio->begin()) {
+    Log.errorln("Failed to initialize RF24 radio");
+    return;
+  }
+  
+  _radio->setAddressWidth(5);
+  _radio->setDataRate((rf24_datarate_e)configuration.rf24_data_rate);
+  _radio->setPALevel(configuration.rf24_pa_level);
+  _radio->setChannel(configuration.rf24_channel);
+  _radio->setPayloadSize(sizeof(float));
+  _radio->openReadingPipe(1, addresses[1]);
+  _radio->setRetries(10, 15);
   _radio->startListening();
 
-  Log.infoln("Radio listening...");
+  Log.infoln("Radio initialized...");
   Log.noticeln("  Channel: %i", _radio->getChannel());
-  Log.noticeln("  PayloadSize: %i", _radio->getPayloadSize());
   Log.noticeln("  DataRate: %i", _radio->getDataRate());
-  Log.noticeln("  isPVariant: %t", _radio->isPVariant());
+  Log.noticeln("  PALevel: %i", _radio->getPALevel());
+  Log.noticeln("  PayloadSize: %i", _radio->getPayloadSize());
 
-  _radio->printDetails();
-  
+  char buffer[870] = {'\0'};
+  uint16_t used_chars = _radio->sprintfPrettyDetails(buffer);
+  Log.noticeln(buffer);
+
   _queue.push_back(new CBaseMessage(String("test")));
 }
 
@@ -46,12 +67,13 @@ CRF24Manager::~CRF24Manager() {
 }
 
 void CRF24Manager::loop() {
-  if (_radio->available()) {
-    digitalWrite(INTERNAL_LED_PIN, HIGH);
-    _radio->read( &_data, sizeof(_data) );
-    Log.infoln("Received: '%s'", _data);
-    _queue.push_back(new CBaseMessage(String(_data)));
-    delay(100);
-    digitalWrite(INTERNAL_LED_PIN, LOW);
+  uint8_t pipe;
+  if (_radio->available(&pipe)) {
+    intLEDOn();
+    uint8_t bytes = _radio->getPayloadSize();  // get the size of the payload
+    _radio->read(&_data, bytes);             // fetch payload from FIFO
+    Log.infoln("Received %i bytes on pipe %i representing %D", bytes, pipe, _data);
+    //_queue.push_back(new CBaseMessage(String(_data)));
+    intLEDOff();
   }
 }

@@ -2,6 +2,8 @@
 #include <EEPROM.h>
 #include "Configuration.h"
 
+#include <RF24.h>
+
 configuration_t configuration;
 
 uint8_t EEPROM_initAndCheckFactoryReset() {
@@ -51,6 +53,11 @@ void EEPROM_loadConfig() {
       configuration.mqttPort = 1883;
       strcpy(configuration.mqttTopic, "");
     #endif
+    #ifdef RADIO_RF24
+      configuration.rf24_channel = RF24_CHANNEL;
+      configuration.rf24_data_rate = RF24_DATA_RATE;
+      configuration.rf24_pa_level = RF24_PA_LEVEL;
+    #endif
 
     EEPROM_saveConfig();
   }
@@ -94,4 +101,20 @@ uint32_t CONFIG_getDeviceId() {
 static unsigned long tMillisUp = millis();
 unsigned long CONFIG_getUpTime() {  
   return millis() - tMillisUp;
+}
+
+void intLEDOn() {
+  #if (defined(SEEED_XIAO_M0) || defined(ESP8266))
+    digitalWrite(INTERNAL_LED_PIN, LOW);
+  #else
+    digitalWrite(INTERNAL_LED_PIN, HIGH);
+  #endif  
+}
+
+void intLEDOff() {
+  #if (defined(SEEED_XIAO_M0) || defined(ESP8266))
+    digitalWrite(INTERNAL_LED_PIN, HIGH);
+  #else
+    digitalWrite(INTERNAL_LED_PIN, LOW);
+  #endif
 }
