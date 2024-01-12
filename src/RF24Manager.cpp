@@ -30,7 +30,7 @@
 #include "BaseMessage.h"
 #include "RF24Message.h"
 
-const uint8_t addresses[][6] = {"JAIGW", "TSIAJ", "FSIAJ", "FSIAJ"};
+const uint8_t addresses[][6] = {"JAIGW", "TSIAJ", "FSIAJ", "SSIAJ", "PSIAJ"};
 
 CRF24Manager::CRF24Manager() {  
   _radio = new RF24(CE_PIN, CSN_PIN);
@@ -45,7 +45,10 @@ CRF24Manager::CRF24Manager() {
   _radio->setPALevel(configuration.rf24_pa_level);
   _radio->setChannel(configuration.rf24_channel);
   _radio->setPayloadSize(CRF24Message::getMessageLength());
-  _radio->openReadingPipe(1, addresses[1]);
+  for (int i=1; i<5; i++) {
+    Log.infoln("Opening reading pipe %i on address '%s'", i, addresses[i] + '\0');
+    _radio->openReadingPipe(i, addresses[i]);
+  }
   _radio->setRetries(15, 15);
   _radio->startListening();
 
