@@ -28,6 +28,7 @@
 #include "RF24Manager.h"
 #include "Configuration.h"
 #include "BaseMessage.h"
+#include "RF24Message.h"
 
 const uint8_t addresses[][6] = {"JAIGW", "TSIAJ", "FSIAJ", "FSIAJ"};
 
@@ -43,9 +44,9 @@ CRF24Manager::CRF24Manager() {
   _radio->setDataRate((rf24_datarate_e)configuration.rf24_data_rate);
   _radio->setPALevel(configuration.rf24_pa_level);
   _radio->setChannel(configuration.rf24_channel);
-  _radio->setPayloadSize(sizeof(float));
+  _radio->setPayloadSize(CRF24Message::getMessageLength());
   _radio->openReadingPipe(1, addresses[1]);
-  _radio->setRetries(10, 15);
+  _radio->setRetries(15, 15);
   _radio->startListening();
 
   Log.infoln("Radio initialized...");
@@ -70,10 +71,16 @@ void CRF24Manager::loop() {
   uint8_t pipe;
   if (_radio->available(&pipe)) {
     intLEDOn();
-    uint8_t bytes = _radio->getPayloadSize();  // get the size of the payload
-    _radio->read(&_data, bytes);             // fetch payload from FIFO
-    Log.infoln("Received %i bytes on pipe %i representing %D", bytes, pipe, _data);
-    //_queue.push_back(new CBaseMessage(String(_data)));
+    uint8_t bytes = _radio->getPayloadSize();
+    if (bytes == CRF24Message::getMessageLength()) {
+      CRF24Message msg;
+      _radio->read(&msg, bytes);
+      Log.infoln("Received %i bytes on pipe %i (V=%D, T=%D, H=%D, U=%i)", bytes, pipe, 
+        msg.getVoltage(), msg.getTemperature(), msg.getHumidity(), msg.getUptime());
+      //_queue.push_back(new CBaseMessage(String(_data)));
+    } else {
+      Log.warningln("Received message length %u != expected %u, ignoring", CRF24Message::getMessageLength(), bytes);
+    }
     intLEDOff();
   }
 }

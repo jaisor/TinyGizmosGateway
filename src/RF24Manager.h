@@ -15,7 +15,6 @@ private:
   StaticJsonDocument<2048> configJson;
 
   RF24 *_radio;
-  float _data;
 
   std::vector<CBaseMessage*> _queue;
     
