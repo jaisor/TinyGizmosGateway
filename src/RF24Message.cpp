@@ -21,6 +21,11 @@ CRF24Message::CRF24Message(float voltage, float temperature, float humidity, uin
   _msg.id = MSG_UVTHP_ID;
 }
 
+CRF24Message::CRF24Message(const void* buf, uint8_t length) {
+  // TODO: Validate message id
+  memcpy(&_msg, buf, length);
+}
+
 const void* CRF24Message::getMessageBuffer() {
   return &_msg;
 }

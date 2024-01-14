@@ -14,6 +14,7 @@ private:
 public:
 	CRF24Message();
   CRF24Message(float voltage, float temperature, float humidity, uint16_t uptime);
+  CRF24Message(const void* buf, uint8_t length);
 
   static uint8_t getMessageLength() { return sizeof(r24_message_uvthp_t); }
   const void* getMessageBuffer(); 

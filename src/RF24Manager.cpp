@@ -53,7 +53,7 @@ CRF24Manager::CRF24Manager() {
   _radio->setChannel(configuration.rf24_channel);
   _radio->setPayloadSize(CRF24Message::getMessageLength());
   for (uint8_t i=0; i<6; i++) {
-    Log.infoln("Opening reading pipe %i on address '%s'", i, addresses[i] + '\0');
+    Log.verboseln("Opening reading pipe %i on address '%s'", i, addresses[i] + '\0');
     _radio->openReadingPipe(i, addresses[i]);
   }
   _radio->setRetries(15, 15);
@@ -87,8 +87,9 @@ void CRF24Manager::loop() {
     intLEDOn();
     uint8_t bytes = _radio->getPayloadSize();
     if (bytes == CRF24Message::getMessageLength()) {
-      CRF24Message msg;
-      _radio->read(&msg, bytes);
+      uint8_t buf[bytes];
+      _radio->read(&buf, bytes);
+      CRF24Message msg(&buf, bytes);
       Log.infoln("Received %i bytes on pipe %i (V=%D, T=%D, H=%D, U=%i)", bytes, pipe, 
         msg.getVoltage(), msg.getTemperature(), msg.getHumidity(), msg.getUptime());
       //_queue.push_back(new CBaseMessage(String(_data)));
