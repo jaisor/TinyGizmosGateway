@@ -4,6 +4,8 @@
 #include <functional>
 #include <ArduinoLog.h>
 
+#define LOG_LEVEL LOG_LEVEL_VERBOSE
+
 #define WIFI    // 2.4Ghz wifi access point
 
 #define EEPROM_FACTORY_RESET 0       // Byte to be used for factory reset device fails to start or is rebooted within 1 sec 3 consequitive times

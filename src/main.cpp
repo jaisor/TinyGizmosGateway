@@ -26,8 +26,7 @@ void setup() {
   Serial.begin(115200);  while (!Serial); delay(200);
   randomSeed(analogRead(0));
 
-  //Log.begin(LOG_LEVEL_VERBOSE, &Serial);
-  Log.begin(LOG_LEVEL_NOTICE, &Serial);
+  Log.begin(LOG_LEVEL, &Serial);
   Log.noticeln("Initializing...");  
 
   pinMode(INTERNAL_LED_PIN, OUTPUT);

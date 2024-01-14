@@ -30,7 +30,14 @@
 #include "BaseMessage.h"
 #include "RF24Message.h"
 
-const uint8_t addresses[][6] = {"JAIGW", "TSIAJ", "FSIAJ", "SSIAJ", "PSIAJ"};
+const uint8_t addresses[][6] = {
+  "0STUS", 
+  "1STUS", 
+  "2STUS", 
+  "3STUS", 
+  "4STUS",
+  "5STUS"
+};
 
 CRF24Manager::CRF24Manager() {  
   _radio = new RF24(CE_PIN, CSN_PIN);
@@ -45,22 +52,26 @@ CRF24Manager::CRF24Manager() {
   _radio->setPALevel(configuration.rf24_pa_level);
   _radio->setChannel(configuration.rf24_channel);
   _radio->setPayloadSize(CRF24Message::getMessageLength());
-  for (int i=1; i<5; i++) {
+  for (uint8_t i=0; i<6; i++) {
     Log.infoln("Opening reading pipe %i on address '%s'", i, addresses[i] + '\0');
     _radio->openReadingPipe(i, addresses[i]);
   }
   _radio->setRetries(15, 15);
   _radio->startListening();
 
-  Log.infoln("Radio initialized...");
-  Log.noticeln("  Channel: %i", _radio->getChannel());
-  Log.noticeln("  DataRate: %i", _radio->getDataRate());
-  Log.noticeln("  PALevel: %i", _radio->getPALevel());
-  Log.noticeln("  PayloadSize: %i", _radio->getPayloadSize());
+  Log.infoln("Radio initialized");
+  if (Log.getLevel() >= LOG_LEVEL_NOTICE) {
+    Log.noticeln("  Channel: %i", _radio->getChannel());
+    Log.noticeln("  DataRate: %i", _radio->getDataRate());
+    Log.noticeln("  PALevel: %i", _radio->getPALevel());
+    Log.noticeln("  PayloadSize: %i", _radio->getPayloadSize());
 
-  char buffer[870] = {'\0'};
-  uint16_t used_chars = _radio->sprintfPrettyDetails(buffer);
-  Log.noticeln(buffer);
+    if (Log.getLevel() >= LOG_LEVEL_VERBOSE) {
+      char buffer[870] = {'\0'};
+      uint16_t used_chars = _radio->sprintfPrettyDetails(buffer);
+      Log.verboseln(buffer);
+    }
+  }
 
   _queue.push_back(new CBaseMessage(String("test")));
 }
