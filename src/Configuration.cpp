@@ -57,6 +57,10 @@ void EEPROM_loadConfig() {
       configuration.rf24_channel = RF24_CHANNEL;
       configuration.rf24_data_rate = RF24_DATA_RATE;
       configuration.rf24_pa_level = RF24_PA_LEVEL;
+      strcpy(configuration.rf24_pipe_suffix, RF24_PIPE_SUFFIX);
+      for(int i=0; i<6; i++) {
+        strcpy(configuration.rf24_pipe_mqttTopic[i], "");
+      }
     #endif
 
     EEPROM_saveConfig();

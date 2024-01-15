@@ -71,8 +71,27 @@ const String htmlDeviceConfigs = "<hr><h2>Configs</h2>\
     <label for='mqttTopic'>MQTT topic:</label><br>\
     <input type='text' id='mqttTopic' name='mqttTopic' value='%s'><br>\
     <br>\
+    <h2>Radio Settings</h2>\
+    <label for='rf24_channel'>Channel:</label><br>\
+    <input type='text' id='rf24_channel' name='rf24_channel' value='%s'> <small>(0-125)</small<br>\
+    <label for='rf24_data_rate'>Data rate:</label><br>\
+    <select name='rf24_data_rate' id='rf24_data_rate'>\
+    %s\
+    </select><br>\
+    <label for='rf24_pa_level'>Power amplifier level:</label><br>\
+    <select name='rf24_pa_level' id='rf24_pa_level'>\
+    %s\
+    </select><br>\
+    <label for='rf24_pipe_suffix'>Pipe suffix:</label><br>\
+    <input type='text' id='rf24_pipe_suffix' name='rf24_pipe_suffix' value='%s' minlength='4' maxlength='4'><br>\
+    <small>gets appended to the pipe index to form the pipe name</small><br>\
+    %s\
+    <br>\
     <input type='submit' value='Set...'>\
   </form>";
+
+const String htmlRF24MQTTTopicRow = "<label for='ssid'>%i pipe MQTT topic:</label><br>\
+    <input type='text' id='ssid' name='ssid'><br>";
 
 CWifiManager::CWifiManager(IMessageQueue *messageQueue): 
 rebootNeeded(false), postedSensorUpdate(false), wifiRetries(0), messageQueue(messageQueue) {  

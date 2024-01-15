@@ -45,6 +45,7 @@
   #define RF24_CHANNEL 76
   #define RF24_DATA_RATE RF24_250KBPS
   #define RF24_PA_LEVEL RF24_PA_HIGH
+  #define RF24_PIPE_SUFFIX "STUS"
 #endif
 
 #define INTERNAL_LED_PIN LED_BUILTIN
@@ -70,6 +71,8 @@ struct configuration_t {
     uint8_t rf24_channel;
     uint8_t rf24_data_rate;
     uint8_t rf24_pa_level;
+    char rf24_pipe_suffix[5];
+    char rf24_pipe_mqttTopic[6][128];
   #endif
 
   char name[128];
