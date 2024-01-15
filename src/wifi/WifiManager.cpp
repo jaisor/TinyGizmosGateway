@@ -8,6 +8,7 @@
 #include <ezTime.h>
 #include <AsyncElegantOTA.h>
 #include <StreamUtils.h>
+#include <RF24.h>
 
 #include "wifi/WifiManager.h"
 #include "Configuration.h"
@@ -36,6 +37,7 @@ const String htmlTop = "<html>\
   <title>%s</title>\
   <style>\
     body { background-color: #303030; font-family: 'Anaheim',sans-serif; Color: #d8d8d8; }\
+    input, select { margin-bottom: 0.4em; }\
   </style>\
   </head>\
   <body>\
@@ -71,9 +73,9 @@ const String htmlDeviceConfigs = "<hr><h2>Configs</h2>\
     <label for='mqttTopic'>MQTT topic:</label><br>\
     <input type='text' id='mqttTopic' name='mqttTopic' value='%s'><br>\
     <br>\
-    <h2>Radio Settings</h2>\
+    <h3>Radio Settings</h3>\
     <label for='rf24_channel'>Channel:</label><br>\
-    <input type='text' id='rf24_channel' name='rf24_channel' value='%s'> <small>(0-125)</small<br>\
+    <input type='text' id='rf24_channel' name='rf24_channel' value='%u' size='3' maxlength='3'> <small>(0-125)</small><br>\
     <label for='rf24_data_rate'>Data rate:</label><br>\
     <select name='rf24_data_rate' id='rf24_data_rate'>\
     %s\
@@ -82,9 +84,8 @@ const String htmlDeviceConfigs = "<hr><h2>Configs</h2>\
     <select name='rf24_pa_level' id='rf24_pa_level'>\
     %s\
     </select><br>\
-    <label for='rf24_pipe_suffix'>Pipe suffix:</label><br>\
-    <input type='text' id='rf24_pipe_suffix' name='rf24_pipe_suffix' value='%s' minlength='4' maxlength='4'><br>\
-    <small>gets appended to the pipe index to form the pipe name</small><br>\
+    <label for='rf24_pipe_suffix'>Pipe name suffix:</label><br>\
+    <input type='text' id='rf24_pipe_suffix' name='rf24_pipe_suffix' value='%s' minlength='4' maxlength='4' size='4'><br>\
     %s\
     <br>\
     <input type='submit' value='Set...'>\
@@ -256,8 +257,39 @@ void CWifiManager::handleRoot(AsyncWebServerRequest *request) {
     response->printf("<p>Connected to '%s'</p>", SSID);
   }
 
+  char rfDataRate[130];
+  snprintf(rfDataRate, 256, "<option %s value='0'>1MBPS</option>\
+    <option %s value='1'>2MBPS</option>\
+    <option %s value='2'>250KBPS</option>", 
+    configuration.rf24_data_rate == RF24_1MBPS ? "selected" : "", 
+    configuration.rf24_data_rate == RF24_2MBPS ? "selected" : "", 
+    configuration.rf24_data_rate == RF24_250KBPS ? "selected" : "");
+
+  char rfPALevel[210];
+  snprintf(rfPALevel, 256, "<option %s value='0'>Min</option>\
+    <option %s value='1'>Low</option>\
+    <option %s value='2'>High</option>\
+    <option %s value='2'>Max</option>", 
+    configuration.rf24_pa_level == RF24_PA_MIN ? "selected" : "", 
+    configuration.rf24_pa_level == RF24_PA_LOW ? "selected" : "", 
+    configuration.rf24_pa_level == RF24_PA_HIGH ? "selected" : "",
+    configuration.rf24_pa_level == RF24_PA_MAX ? "selected" : "");
+
+  String mqttTopicPipes = "";
+  for (int i=0; i<6; i++) {
+    char c[255];
+    snprintf(c, 256, "<label for='pipe_%i_mqttTopic'>Pipe %i MQTT topic:</label><br>\
+      <input type='text' id='pipe_%i_mqttTopic' name='pipe_%i_mqttTopic' value='%s'><br>",
+      i, i+1, i, i, configuration.rf24_pipe_mqttTopic[i]
+      );
+    mqttTopicPipes += String(c);
+  }
+  
+
   response->printf(htmlDeviceConfigs.c_str(), configuration.name,
-    configuration.mqttServer, configuration.mqttPort, configuration.mqttTopic);
+    configuration.mqttServer, configuration.mqttPort, configuration.mqttTopic,
+    configuration.rf24_channel, rfDataRate, rfPALevel, configuration.rf24_pipe_suffix, mqttTopicPipes.c_str()
+  );
 
   printHTMLBottom(response);
   request->send(response);
