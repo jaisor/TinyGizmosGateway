@@ -190,7 +190,7 @@ void CWifiManager::listen() {
 
 void CWifiManager::loop() {
 
-  if (rebootNeeded && millis() - tMillis > 200) {
+  if (rebootNeeded && millis() - tMillis > 300) {
     Log.noticeln("Rebooting...");
   #ifdef ESP32
     ESP.restart();
@@ -217,6 +217,21 @@ void CWifiManager::loop() {
     postSensorUpdate();
   }
 
+  } else if (WiFi.status() == WL_NO_SSID_AVAIL && !isApMode()) {
+    // Can't find desired AP
+
+    if (millis() - tMillis > MAX_CONNECT_TIMEOUT_MS) {
+      tMillis = millis();
+      if (++wifiRetries > 1) {
+        Log.warningln("Failed to find previous AP (wifi status %i) after %l ms, create an AP instead", WiFi.status(), (millis() - tMillis));
+        strcpy(SSID, "");
+        WiFi.disconnect(false, true);
+        connect();
+      } else {
+        Log.warningln("Can't find previous AP (wifi status %i) trying again attempt: %i", WiFi.status(), wifiRetries);
+      }
+      //Log.infoln("WifiMode == %i", WiFi.getMode());
+    }
   } else {
   // WiFi is down
 
@@ -230,8 +245,8 @@ void CWifiManager::loop() {
     case WF_CONNECTING: {
       if (millis() - tMillis > MAX_CONNECT_TIMEOUT_MS) {
         tMillis = millis();
-        if (wifiRetries++ > 3) {
-          Log.warningln("Connecting failed (wifi status %i) after %l ms, create an AP instead", (millis() - tMillis), WiFi.status());
+        if (++wifiRetries > 3) {
+          Log.warningln("Connecting failed (wifi status %i) after %l ms, create an AP instead", WiFi.status(), (millis() - tMillis));
           strcpy(SSID, "");
         }
         connect();
@@ -269,7 +284,7 @@ void CWifiManager::handleRoot(AsyncWebServerRequest *request) {
   snprintf(rfPALevel, 256, "<option %s value='0'>Min</option>\
     <option %s value='1'>Low</option>\
     <option %s value='2'>High</option>\
-    <option %s value='2'>Max</option>", 
+    <option %s value='3'>Max</option>", 
     configuration.rf24_pa_level == RF24_PA_MIN ? "selected" : "", 
     configuration.rf24_pa_level == RF24_PA_LOW ? "selected" : "", 
     configuration.rf24_pa_level == RF24_PA_HIGH ? "selected" : "",
@@ -284,7 +299,6 @@ void CWifiManager::handleRoot(AsyncWebServerRequest *request) {
       );
     mqttTopicPipes += String(c);
   }
-  
 
   response->printf(htmlDeviceConfigs.c_str(), configuration.name,
     configuration.mqttServer, configuration.mqttPort, configuration.mqttTopic,
@@ -318,7 +332,9 @@ void CWifiManager::handleConnect(AsyncWebServerRequest *request) {
   EEPROM_saveConfig();
 
   strcpy(SSID, configuration.wifiSsid);
-  connect();
+  WiFi.disconnect(true, true);
+  tMillis = millis();
+  rebootNeeded = true;
 }
 
 void CWifiManager::handleConfig(AsyncWebServerRequest *request) {
@@ -342,10 +358,27 @@ void CWifiManager::handleConfig(AsyncWebServerRequest *request) {
   mqttTopic.toCharArray(configuration.mqttTopic, sizeof(configuration.mqttTopic));
   Log.infoln("MQTT Topic: %s", mqttTopic);
 
+  uint8_t rf24_channel = atoi(request->arg("rf24_channel").c_str());
+  configuration.rf24_channel = rf24_channel;
+  Log.infoln("RF24 Channel: %u", rf24_channel);
+
+  uint8_t rf24_data_rate = atoi(request->arg("rf24_data_rate").c_str());
+  configuration.rf24_data_rate = rf24_data_rate;
+  Log.infoln("RF24 Data Rate: %u", rf24_data_rate);
+
+  uint8_t rf24_pa_level = atoi(request->arg("rf24_pa_level").c_str());
+  configuration.rf24_pa_level = rf24_pa_level;
+  Log.infoln("RF24 PA Level: %u", rf24_pa_level);
+
+  String rf24_pipe_suffix = request->arg("rf24_pipe_suffix");
+  rf24_pipe_suffix.toCharArray(configuration.rf24_pipe_suffix, sizeof(configuration.rf24_pipe_suffix));
+  Log.infoln("RF24 Pipe Suffix: %s", rf24_pipe_suffix);
+
   EEPROM_saveConfig();
   
-  rebootNeeded = true;
   request->redirect("/");
+  tMillis = millis();
+  rebootNeeded = true;
 }
 
 void CWifiManager::handleFactoryReset(AsyncWebServerRequest *request) {
@@ -356,6 +389,7 @@ void CWifiManager::handleFactoryReset(AsyncWebServerRequest *request) {
   response->printf("OK");
 
   EEPROM_wipe();
+  tMillis = millis();
   rebootNeeded = true;
   
   request->send(response);
@@ -430,7 +464,7 @@ void CWifiManager::postSensorUpdate() {
 }
 
 bool CWifiManager::isApMode() { 
-  return WiFi.getMode() == WIFI_AP; 
+  return WiFi.getMode() == WIFI_AP || WiFi.getMode() == WIFI_MODE_APSTA; 
 }
 
 void CWifiManager::mqttCallback(char *topic, uint8_t *payload, unsigned int length) {
