@@ -8,12 +8,10 @@ class CBaseMessage {
 
 protected:
     unsigned long tMillis;
-    const String raw;
+    const u_int8_t pipe;
 
 public:
-	CBaseMessage(const String raw);
-
-    virtual void something() {};
-
-    const String getString() { return raw; }
+	CBaseMessage(const u_int8_t pipe);
+    const uint8_t getPipe() { return pipe; };
+    virtual const String getString() { return String(""); }
 };

@@ -1,5 +1,5 @@
 #include "BaseMessage.h"
 
-CBaseMessage::CBaseMessage(const String raw)
-: raw(raw) {
+CBaseMessage::CBaseMessage(const u_int8_t pipe)
+: pipe(pipe) {
 }

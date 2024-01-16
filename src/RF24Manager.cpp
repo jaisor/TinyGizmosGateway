@@ -30,15 +30,6 @@
 #include "BaseMessage.h"
 #include "RF24Message.h"
 
-const uint8_t addresses[][6] = {
-  "0STUS", 
-  "1STUS", 
-  "2STUS", 
-  "3STUS", 
-  "4STUS",
-  "5STUS"
-};
-
 CRF24Manager::CRF24Manager() {  
   _radio = new RF24(CE_PIN, CSN_PIN);
   
@@ -53,8 +44,10 @@ CRF24Manager::CRF24Manager() {
   _radio->setChannel(configuration.rf24_channel);
   _radio->setPayloadSize(CRF24Message::getMessageLength());
   for (uint8_t i=0; i<6; i++) {
-    Log.verboseln("Opening reading pipe %i on address '%s'", i, addresses[i] + '\0');
-    _radio->openReadingPipe(i, addresses[i]);
+    char a[6];
+    snprintf(a, 6, "%i%s", i, configuration.rf24_pipe_suffix);
+    Log.noticeln("Opening reading pipe %i on address '%s'", i, a);
+    _radio->openReadingPipe(i, (uint8_t*)a);
   }
   _radio->setRetries(15, 15);
   _radio->startListening();
@@ -72,8 +65,6 @@ CRF24Manager::CRF24Manager() {
       Log.verboseln(buffer);
     }
   }
-
-  _queue.push_back(new CBaseMessage(String("test")));
 }
 
 CRF24Manager::~CRF24Manager() { 
@@ -89,10 +80,9 @@ void CRF24Manager::loop() {
     if (bytes == CRF24Message::getMessageLength()) {
       uint8_t buf[bytes];
       _radio->read(&buf, bytes);
-      CRF24Message msg(&buf, bytes);
-      Log.infoln("Received %i bytes on pipe %i (V=%D, T=%D, H=%D, U=%i)", bytes, pipe, 
-        msg.getVoltage(), msg.getTemperature(), msg.getHumidity(), msg.getUptime());
-      //_queue.push_back(new CBaseMessage(String(_data)));
+      CRF24Message *msg = new CRF24Message(pipe, &buf, bytes);
+      Log.infoln("Received %i bytes message: %s", msg->getString());
+      _queue.push_back(msg);
     } else {
       Log.warningln("Received message length %u != expected %u, ignoring", CRF24Message::getMessageLength(), bytes);
     }

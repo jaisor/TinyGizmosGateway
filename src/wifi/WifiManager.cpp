@@ -273,7 +273,7 @@ void CWifiManager::handleRoot(AsyncWebServerRequest *request) {
   }
 
   char rfDataRate[130];
-  snprintf(rfDataRate, 256, "<option %s value='0'>1MBPS</option>\
+  snprintf(rfDataRate, 130, "<option %s value='0'>1MBPS</option>\
     <option %s value='1'>2MBPS</option>\
     <option %s value='2'>250KBPS</option>", 
     configuration.rf24_data_rate == RF24_1MBPS ? "selected" : "", 
@@ -281,7 +281,7 @@ void CWifiManager::handleRoot(AsyncWebServerRequest *request) {
     configuration.rf24_data_rate == RF24_250KBPS ? "selected" : "");
 
   char rfPALevel[210];
-  snprintf(rfPALevel, 256, "<option %s value='0'>Min</option>\
+  snprintf(rfPALevel, 210, "<option %s value='0'>Min</option>\
     <option %s value='1'>Low</option>\
     <option %s value='2'>High</option>\
     <option %s value='3'>Max</option>", 
@@ -293,7 +293,7 @@ void CWifiManager::handleRoot(AsyncWebServerRequest *request) {
   String mqttTopicPipes = "";
   for (int i=0; i<6; i++) {
     char c[255];
-    snprintf(c, 256, "<label for='pipe_%i_mqttTopic'>Pipe %i MQTT topic:</label><br>\
+    snprintf(c, 255, "<label for='pipe_%i_mqttTopic'>Pipe %i MQTT topic:</label><br>\
       <input type='text' id='pipe_%i_mqttTopic' name='pipe_%i_mqttTopic' value='%s'><br>",
       i, i+1, i, i, configuration.rf24_pipe_mqttTopic[i]
       );
