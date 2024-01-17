@@ -6,7 +6,7 @@
 #include <WiFiClient.h>
 #include <Time.h>
 #include <ezTime.h>
-#include <AsyncElegantOTA.h>
+#include <ElegantOTA.h>
 #include <StreamUtils.h>
 #include <RF24.h>
 
@@ -162,7 +162,7 @@ void CWifiManager::listen() {
   }
 
   // OTA
-  AsyncElegantOTA.begin(server);
+  ElegantOTA.begin(server);
 
   // MQTT
   mqtt.setServer(configuration.mqttServer, configuration.mqttPort);
@@ -189,6 +189,8 @@ void CWifiManager::listen() {
 }
 
 void CWifiManager::loop() {
+
+  ElegantOTA.loop();
 
   if (rebootNeeded && millis() - tMillis > 300) {
     Log.noticeln("Rebooting...");
@@ -515,23 +517,49 @@ void CWifiManager::printHTMLBottom(Print *p) {
 
 void CWifiManager::processQueue() {
   std::queue<CBaseMessage*> q = messageQueue->getQueue();
+  
+  time_t now; 
+  time(&now);
+  char buf[sizeof "2011-10-08T07:07:09Z"];
+  strftime(buf, sizeof buf, "%FT%TZ", gmtime(&now));
+
   while(!q.empty()) {
     CRF24Message *msg = (CRF24Message *)q.front();
 
     if (!strlen(configuration.rf24_pipe_mqttTopic[msg->getPipe()])) {
-      Log.warning("Message received on a pipe with blank MPTT topic: %s", msg->getString());
+      Log.warning(F("Message received on a pipe with blank MPTT topic: %s"), msg->getString());
     } else {
       // sensor Json
       char topic[255];
-      sprintf_P(topic, "%s/json", configuration.mqttTopic);
-      mqtt.beginPublish(topic, measureJson(sensorJson), false);
+      sprintf_P(topic, "%s/json", configuration.rf24_pipe_mqttTopic[msg->getPipe()]);
+
+      rfJson["message_id"] = msg->getId();
+      rfJson["uptime_millis"] = msg->getUptime();
+      rfJson["voltage"] = msg->getVoltage();
+      rfJson["temperature"] = msg->getTemperature()*9.0/5.0 + 32.0;
+      rfJson["temperature_unit"] = F("Fahrenheit");
+      rfJson["humidity"] = msg->getHumidity();
+      rfJson["humidity_unit"] = "percent";
+      rfJson["barometric_pressure"] = msg->getBaroPressure();
+      rfJson["barometric_pressure_unit"] = "Pascal";
+      rfJson["timestamp_iso8601"] = String(buf);
+      
+      /*
+      mqtt.beginPublish(topic, measureJson(rfJson), false);
       BufferingPrint bufferedClient(mqtt, 32);
-      serializeJson(sensorJson, bufferedClient);
+      serializeJson(rfJson, bufferedClient);
       bufferedClient.flush();
       mqtt.endPublish();
-      
+      */
     }
 
+    //Log.infoln("Pre-pop queue size: %u", q.size());
     q.pop();
+    //delete msg;
+    //Log.infoln("Popped queue, new size: %u", q.size());
   }
+
+  //Log.infoln("Final queue size: %u", q.size());
+  //delay(100);
+
 }

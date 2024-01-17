@@ -3,8 +3,6 @@
 
 #include "RF24Message.h"
 
-r24_message_uvthp_t _msg;
-
 // Message Uptime-Voltage-Temperature-Humidity-BarometricPressure
 #define MSG_UVTHP_ID 1
 
