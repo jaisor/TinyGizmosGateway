@@ -510,7 +510,7 @@ void CWifiManager::printHTMLBottom(Print *p) {
   int min = sec / 60;
   int hr = min / 60;
 
-  p->printf(htmlBottom.c_str(), String(DEVICE_NAME), hr, min % 60, sec % 60, dBmtoPercentage(WiFi.RSSI()), messageQueue->getQueue());
+  p->printf(htmlBottom.c_str(), String(DEVICE_NAME), hr, min % 60, sec % 60, dBmtoPercentage(WiFi.RSSI()), messageQueue->getQueue().size());
 }
 
 void CWifiManager::processQueue() {
@@ -520,17 +520,18 @@ void CWifiManager::processQueue() {
 
     if (!strlen(configuration.rf24_pipe_mqttTopic[msg->getPipe()])) {
       Log.warning("Message received on a pipe with blank MPTT topic: %s", msg->getString());
+    } else {
+      // sensor Json
+      char topic[255];
+      sprintf_P(topic, "%s/json", configuration.mqttTopic);
+      mqtt.beginPublish(topic, measureJson(sensorJson), false);
+      BufferingPrint bufferedClient(mqtt, 32);
+      serializeJson(sensorJson, bufferedClient);
+      bufferedClient.flush();
+      mqtt.endPublish();
+      
     }
-    /*
-    // sensor Json
-    sprintf_P(topic, "%s/json", configuration.mqttTopic);
-    mqtt.beginPublish(topic, measureJson(sensorJson), false);
-    BufferingPrint bufferedClient(mqtt, 32);
-    serializeJson(sensorJson, bufferedClient);
-    bufferedClient.flush();
-    mqtt.endPublish();
-    */
-    
+
     q.pop();
   }
 }
