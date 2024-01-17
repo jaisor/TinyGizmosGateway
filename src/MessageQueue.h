@@ -1,10 +1,10 @@
 #pragma once
 
-#include <vector>
+#include <queue>
 #include "Configuration.h"
 #include "BaseMessage.h"
 
 class IMessageQueue {
 public:
-  virtual std::vector<CBaseMessage*> getQueue();
+  virtual std::queue<CBaseMessage*> getQueue();
 };

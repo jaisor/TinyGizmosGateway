@@ -33,7 +33,6 @@ private:
   char SSID[32];
   char mqttSubcribeTopicConfig[255];
   bool rebootNeeded;
-  bool postedSensorUpdate;
   
   float batteryVoltage;
 
@@ -44,6 +43,7 @@ private:
 
   StaticJsonDocument<2048> sensorJson;
   StaticJsonDocument<2048> configJson;
+  StaticJsonDocument<2048> rfJson;
 
   void connect();
   void listen();
@@ -57,6 +57,7 @@ private:
   void printHTMLBottom(Print *p);
 
   void postSensorUpdate();
+  void processQueue();
   bool isApMode();
 
   void mqttCallback(char *topic, uint8_t *payload, unsigned int);
@@ -66,5 +67,4 @@ public:
   virtual void loop();
 
   bool isRebootNeeded() { return rebootNeeded; }
-  bool isJobDone() { return !isApMode() && postedSensorUpdate; }
 };

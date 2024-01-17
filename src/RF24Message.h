@@ -14,8 +14,8 @@ typedef struct r24_message_uvthp_t {
 class CRF24Message: public CBaseMessage {
 private:
 public:
-  CRF24Message(const u_int8_t pipe, float voltage, float temperature, float humidity, uint16_t uptime);
-  CRF24Message(const u_int8_t pipe, const void* buf, uint8_t length);
+  CRF24Message(const u_int8_t pipe, const uint16_t uptime, const float voltage, const float temperature, const float humidity, const float baro_pressure);
+  CRF24Message(const u_int8_t pipe, const void* buf, const uint8_t length);
 
   static uint8_t getMessageLength() { return sizeof(r24_message_uvthp_t); }
   const void* getMessageBuffer(); 

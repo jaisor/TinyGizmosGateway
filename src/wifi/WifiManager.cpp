@@ -12,8 +12,10 @@
 
 #include "wifi/WifiManager.h"
 #include "Configuration.h"
+#include "RF24Message.h"
 
 #define MAX_CONNECT_TIMEOUT_MS 15000 // 10 seconds to connect before creating its own AP
+#define POST_UPDATE_INTERVAL 300000 // Every 5 min
 
 const int RSSI_MAX =-50;// define maximum straighten of signal in dBm
 const int RSSI_MIN =-100;// define minimum strength of signal in dBm
@@ -32,7 +34,7 @@ int dBmtoPercentage(int dBm) {
   return quality;
 }
 
-const String htmlTop = "<html>\
+const String htmlTop = F("<html>\
   <head>\
   <title>%s</title>\
   <style>\
@@ -41,27 +43,25 @@ const String htmlTop = "<html>\
   </style>\
   </head>\
   <body>\
-  <h1>%s - Tiny Gizmos Radio Gateway</h1>";
+  <h1>%s - Tiny Gizmos Radio Gateway</h1>");
 
-const String htmlBottom = "<br><br>\
-  Queued messages:<br><textarea rows='4' cols='100'>%s</textarea>\
-  <br><hr>\
-  <p><b>%s</b><br>\
-  Uptime: <b>%02d:%02d:%02d</b><br>\
-  WiFi Signal Strength: <b>%i%%</b>\
+const String htmlBottom = F("<p><b>%s</b><br>\
+  Uptime: <b>%02d:%02d:%02d</b><br/>\
+  WiFi signal strength: <b>%i%%</b><br/>\
+  RF messages in queue: <b>%i</b><br/>\
   </p></body>\
-</html>";
+</html>");
 
-const String htmlWifiApConnectForm = "<hr><h2>Connect to WiFi Access Point (AP)</h2>\
+const String htmlWifiApConnectForm = F("<hr><h2>Connect to WiFi Access Point (AP)</h2>\
   <form method='POST' action='/connect' enctype='application/x-www-form-urlencoded'>\
     <label for='ssid'>SSID (AP Name):</label><br>\
     <input type='text' id='ssid' name='ssid'><br><br>\
     <label for='pass'>Password (WPA2):</label><br>\
     <input type='password' id='pass' name='password' minlength='8' autocomplete='off' required><br><br>\
     <input type='submit' value='Connect...'>\
-  </form>";
+  </form>");
 
-const String htmlDeviceConfigs = "<hr><h2>Configs</h2>\
+const String htmlDeviceConfigs = F("<hr><h2>Configs</h2>\
   <form method='POST' action='/config' enctype='application/x-www-form-urlencoded'>\
     <label for='deviceName'>Device name:</label><br>\
     <input type='text' id='deviceName' name='deviceName' value='%s'><br>\
@@ -89,13 +89,13 @@ const String htmlDeviceConfigs = "<hr><h2>Configs</h2>\
     %s\
     <br>\
     <input type='submit' value='Set...'>\
-  </form>";
+  </form>");
 
-const String htmlRF24MQTTTopicRow = "<label for='ssid'>%i pipe MQTT topic:</label><br>\
-    <input type='text' id='ssid' name='ssid'><br>";
+const String htmlRF24MQTTTopicRow = F("<label for='ssid'>%i pipe MQTT topic:</label><br>\
+    <input type='text' id='ssid' name='ssid'><br>");
 
 CWifiManager::CWifiManager(IMessageQueue *messageQueue): 
-rebootNeeded(false), postedSensorUpdate(false), wifiRetries(0), messageQueue(messageQueue) {  
+rebootNeeded(false), wifiRetries(0), messageQueue(messageQueue) {  
 
   sensorJson["gw_name"] = configuration.name;
 
@@ -201,21 +201,23 @@ void CWifiManager::loop() {
   }
 
   if (WiFi.status() == WL_CONNECTED || isApMode() ) {
-  // WiFi is connected
+    // WiFi is connected
 
-  if (status != WF_LISTENING) {  
-    // Start listening for requests
-    listen();
-    return;
-  }
+    if (status != WF_LISTENING) {  
+      // Start listening for requests
+      listen();
+      return;
+    }
 
-  mqtt.loop();
+    mqtt.loop();
 
-  if (millis() - tMillis > (postedSensorUpdate || isApMode() ? 30000 : 1000) &&
-    strlen(configuration.mqttServer) && strlen(configuration.mqttTopic) && mqtt.connected()) {
-    tMillis = millis();
-    postSensorUpdate();
-  }
+    if (!isApMode() && millis() - tMillis > POST_UPDATE_INTERVAL &&
+      strlen(configuration.mqttServer) && strlen(configuration.mqttTopic) && mqtt.connected()) {
+      tMillis = millis();
+      postSensorUpdate();
+    }
+
+    processQueue();
 
   } else if (WiFi.status() == WL_NO_SSID_AVAIL && !isApMode()) {
     // Can't find desired AP
@@ -273,18 +275,18 @@ void CWifiManager::handleRoot(AsyncWebServerRequest *request) {
   }
 
   char rfDataRate[130];
-  snprintf(rfDataRate, 130, "<option %s value='0'>1MBPS</option>\
+  snprintf_P(rfDataRate, 130, PSTR("<option %s value='0'>1MBPS</option>\
     <option %s value='1'>2MBPS</option>\
-    <option %s value='2'>250KBPS</option>", 
+    <option %s value='2'>250KBPS</option>"), 
     configuration.rf24_data_rate == RF24_1MBPS ? "selected" : "", 
     configuration.rf24_data_rate == RF24_2MBPS ? "selected" : "", 
     configuration.rf24_data_rate == RF24_250KBPS ? "selected" : "");
 
   char rfPALevel[210];
-  snprintf(rfPALevel, 210, "<option %s value='0'>Min</option>\
+  snprintf_P(rfPALevel, 210, PSTR("<option %s value='0'>Min</option>\
     <option %s value='1'>Low</option>\
     <option %s value='2'>High</option>\
-    <option %s value='3'>Max</option>", 
+    <option %s value='3'>Max</option>"), 
     configuration.rf24_pa_level == RF24_PA_MIN ? "selected" : "", 
     configuration.rf24_pa_level == RF24_PA_LOW ? "selected" : "", 
     configuration.rf24_pa_level == RF24_PA_HIGH ? "selected" : "",
@@ -293,8 +295,8 @@ void CWifiManager::handleRoot(AsyncWebServerRequest *request) {
   String mqttTopicPipes = "";
   for (int i=0; i<6; i++) {
     char c[255];
-    snprintf(c, 255, "<label for='pipe_%i_mqttTopic'>Pipe %i MQTT topic:</label><br>\
-      <input type='text' id='pipe_%i_mqttTopic' name='pipe_%i_mqttTopic' value='%s'><br>",
+    snprintf_P(c, 255, PSTR("<label for='pipe_%i_mqttTopic'>Pipe %i MQTT topic:</label><br>\
+      <input type='text' id='pipe_%i_mqttTopic' name='pipe_%i_mqttTopic' value='%s'><br>"),
       i, i+1, i, i, configuration.rf24_pipe_mqttTopic[i]
       );
     mqttTopicPipes += String(c);
@@ -374,6 +376,11 @@ void CWifiManager::handleConfig(AsyncWebServerRequest *request) {
   rf24_pipe_suffix.toCharArray(configuration.rf24_pipe_suffix, sizeof(configuration.rf24_pipe_suffix));
   Log.infoln("RF24 Pipe Suffix: %s", rf24_pipe_suffix);
 
+  for (int i=0; i<6; i++) {
+    String r = request->arg("pipe_" + String(i) + "_mqttTopic");
+    r.toCharArray(configuration.rf24_pipe_mqttTopic[i], sizeof(configuration.rf24_pipe_mqttTopic[i]));
+  }
+
   EEPROM_saveConfig();
   
   request->redirect("/");
@@ -425,15 +432,9 @@ void CWifiManager::postSensorUpdate() {
   bool current = false;
   float v; int iv;
 
-  bool sensorReady = false;
-
-  if (!isApMode()) {
-    iv = dBmtoPercentage(WiFi.RSSI());
-    sensorJson["gw_wifi_percent"] = iv;
-    sensorJson["gw_wifi_rssi"] = WiFi.RSSI();
-  }
-
-  postedSensorUpdate = sensorReady;
+  iv = dBmtoPercentage(WiFi.RSSI());
+  sensorJson["gw_wifi_percent"] = iv;
+  sensorJson["gw_wifi_rssi"] = WiFi.RSSI();
 
   time_t now; 
   time(&now);
@@ -445,10 +446,11 @@ void CWifiManager::postSensorUpdate() {
   strftime(buf, sizeof buf, "%FT%TZ", gmtime(&now));
   sensorJson["timestamp_iso8601"] = String(buf);
 
-  //sensorJson["jobDone"] = isJobDone();
-  //sensorJson["apMode"] = isApMode();
-  //sensorJson["postedSensorUpdate"] = postedSensorUpdate;
   sensorJson["mqttConfigTopic"] = mqttSubcribeTopicConfig;
+  sensorJson["rf24_data_rate"] = configuration.rf24_data_rate;
+  sensorJson["rf24_pa_level"] = configuration.rf24_pa_level;
+  sensorJson["rf24_pipe_suffix"] = configuration.rf24_pipe_suffix;
+  sensorJson["rf_msq_queue_size"] = messageQueue->getQueue().size();
 
   // sensor Json
   sprintf_P(topic, "%s/json", configuration.mqttTopic);
@@ -508,10 +510,27 @@ void CWifiManager::printHTMLBottom(Print *p) {
   int min = sec / 60;
   int hr = min / 60;
 
-  String q = "";
-  for(CBaseMessage *m : messageQueue->getQueue()) {
-    q += m->getString();
-  }
+  p->printf(htmlBottom.c_str(), String(DEVICE_NAME), hr, min % 60, sec % 60, dBmtoPercentage(WiFi.RSSI()), messageQueue->getQueue());
+}
 
-  p->printf(htmlBottom.c_str(), q, String(DEVICE_NAME), hr, min % 60, sec % 60, dBmtoPercentage(WiFi.RSSI()));
+void CWifiManager::processQueue() {
+  std::queue<CBaseMessage*> q = messageQueue->getQueue();
+  while(!q.empty()) {
+    CRF24Message *msg = (CRF24Message *)q.front();
+
+    if (!strlen(configuration.rf24_pipe_mqttTopic[msg->getPipe()])) {
+      Log.warning("Message received on a pipe with blank MPTT topic: %s", msg->getString());
+    }
+    /*
+    // sensor Json
+    sprintf_P(topic, "%s/json", configuration.mqttTopic);
+    mqtt.beginPublish(topic, measureJson(sensorJson), false);
+    BufferingPrint bufferedClient(mqtt, 32);
+    serializeJson(sensorJson, bufferedClient);
+    bufferedClient.flush();
+    mqtt.endPublish();
+    */
+    
+    q.pop();
+  }
 }

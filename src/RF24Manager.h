@@ -2,7 +2,7 @@
 
 #include <ArduinoJson.h>
 #include <RF24.h>
-#include <vector>
+#include <queue>
 
 #include "BaseManager.h"
 #include "MessageQueue.h"
@@ -16,7 +16,7 @@ private:
 
   RF24 *_radio;
 
-  std::vector<CBaseMessage*> _queue;
+  std::queue<CBaseMessage*> _queue;
     
 public:
 	CRF24Manager();
@@ -26,5 +26,5 @@ public:
   virtual void loop();
 
   // IMessageQueue
-  virtual std::vector<CBaseMessage*> getQueue() { return _queue; };
+  virtual std::queue<CBaseMessage*> getQueue() { return _queue; };
 };

@@ -45,7 +45,7 @@ CRF24Manager::CRF24Manager() {
   _radio->setPayloadSize(CRF24Message::getMessageLength());
   for (uint8_t i=0; i<6; i++) {
     char a[6];
-    snprintf(a, 6, "%i%s", i, configuration.rf24_pipe_suffix);
+    snprintf_P(a, 6, "%i%s", i, configuration.rf24_pipe_suffix);
     Log.noticeln("Opening reading pipe %i on address '%s'", i, a);
     _radio->openReadingPipe(i, (uint8_t*)a);
   }
@@ -81,10 +81,10 @@ void CRF24Manager::loop() {
       uint8_t buf[bytes];
       _radio->read(&buf, bytes);
       CRF24Message *msg = new CRF24Message(pipe, &buf, bytes);
-      Log.infoln("Received %i bytes message: %s", msg->getString());
-      _queue.push_back(msg);
+      Log.infoln(F("Received %i bytes message: %s adding to queue of size %i"), bytes, msg->getString().c_str(), _queue.size());
+      _queue.push(msg);
     } else {
-      Log.warningln("Received message length %u != expected %u, ignoring", CRF24Message::getMessageLength(), bytes);
+      Log.warningln(F("Received message length %u != expected %u, ignoring"), CRF24Message::getMessageLength(), bytes);
     }
     intLEDOff();
   }
