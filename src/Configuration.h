@@ -13,9 +13,9 @@
 
 #define FACTORY_RESET_CLEAR_TIMER_MS 2000   // Clear factory reset counter when elapsed, considered smooth boot
 
-#ifdef ESP32
+#if defined(ESP32)
   #define DEVICE_NAME "ESP32RFGW"
-#elif ESP8266
+#elif defined(ESP8266)
   #define DEVICE_NAME "ESP8266RFGW"
 #endif
 
@@ -35,12 +35,7 @@
   #define WEB_SERVER_PORT 80
 #endif
 
-#define BATTERY_SENSOR  // ADC A0 using 0-3.3v voltage divider
-#ifdef BATTERY_SENSOR
-  #define BATTERY_SENSOR_ADC_PIN  A0
-#endif
-
-#define RADIO_RF24
+//#define RADIO_RF24
 #ifdef RADIO_RF24
   #define RF24_CHANNEL 76
   #define RF24_DATA_RATE RF24_250KBPS

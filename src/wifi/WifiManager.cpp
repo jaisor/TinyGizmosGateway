@@ -34,7 +34,7 @@ int dBmtoPercentage(int dBm) {
   return quality;
 }
 
-const String htmlTop = F("<html>\
+const String htmlTop PROGMEM = FPSTR("<html>\
   <head>\
   <title>%s</title>\
   <style>\
@@ -45,14 +45,14 @@ const String htmlTop = F("<html>\
   <body>\
   <h1>%s - Tiny Gizmos Radio Gateway</h1>");
 
-const String htmlBottom = F("<p><b>%s</b><br>\
+const String htmlBottom PROGMEM = FPSTR("<p><b>%s</b><br>\
   Uptime: <b>%02d:%02d:%02d</b><br/>\
   WiFi signal strength: <b>%i%%</b><br/>\
   RF messages in queue: <b>%i</b><br/>\
   </p></body>\
 </html>");
 
-const String htmlWifiApConnectForm = F("<hr><h2>Connect to WiFi Access Point (AP)</h2>\
+const String htmlWifiApConnectForm PROGMEM = FPSTR("<hr><h2>Connect to WiFi Access Point (AP)</h2>\
   <form method='POST' action='/connect' enctype='application/x-www-form-urlencoded'>\
     <label for='ssid'>SSID (AP Name):</label><br>\
     <input type='text' id='ssid' name='ssid'><br><br>\
@@ -61,7 +61,7 @@ const String htmlWifiApConnectForm = F("<hr><h2>Connect to WiFi Access Point (AP
     <input type='submit' value='Connect...'>\
   </form>");
 
-const String htmlDeviceConfigs = F("<hr><h2>Configs</h2>\
+const String htmlDeviceConfigs PROGMEM = FPSTR("<hr><h2>Configs</h2>\
   <form method='POST' action='/config' enctype='application/x-www-form-urlencoded'>\
     <label for='deviceName'>Device name:</label><br>\
     <input type='text' id='deviceName' name='deviceName' value='%s'><br>\
@@ -91,7 +91,7 @@ const String htmlDeviceConfigs = F("<hr><h2>Configs</h2>\
     <input type='submit' value='Set...'>\
   </form>");
 
-const String htmlRF24MQTTTopicRow = F("<label for='ssid'>%i pipe MQTT topic:</label><br>\
+const String htmlRF24MQTTTopicRow PROGMEM = FPSTR("<label for='ssid'>%i pipe MQTT topic:</label><br>\
     <input type='text' id='ssid' name='ssid'><br>");
 
 CWifiManager::CWifiManager(IMessageQueue *messageQueue): 
@@ -194,9 +194,9 @@ void CWifiManager::loop() {
 
   if (rebootNeeded && millis() - tMillis > 300) {
     Log.noticeln("Rebooting...");
-  #ifdef ESP32
+  #if defined(ESP32)
     ESP.restart();
-  #elif ESP8266
+  #elif defined(ESP8266)
     ESP.reset();
   #endif
   return;
@@ -212,14 +212,13 @@ void CWifiManager::loop() {
     }
 
     mqtt.loop();
+    processQueue();
 
     if (!isApMode() && millis() - tMillis > POST_UPDATE_INTERVAL &&
       strlen(configuration.mqttServer) && strlen(configuration.mqttTopic) && mqtt.connected()) {
       tMillis = millis();
       postSensorUpdate();
     }
-
-    processQueue();
 
   } else if (WiFi.status() == WL_NO_SSID_AVAIL && !isApMode()) {
     // Can't find desired AP
@@ -276,15 +275,18 @@ void CWifiManager::handleRoot(AsyncWebServerRequest *request) {
     response->printf("<p>Connected to '%s'</p>", SSID);
   }
 
-  char rfDataRate[130];
+  char rfDataRate[130] = "";
+  #ifdef RADIO_RF24
   snprintf_P(rfDataRate, 130, PSTR("<option %s value='0'>1MBPS</option>\
     <option %s value='1'>2MBPS</option>\
     <option %s value='2'>250KBPS</option>"), 
     configuration.rf24_data_rate == RF24_1MBPS ? "selected" : "", 
     configuration.rf24_data_rate == RF24_2MBPS ? "selected" : "", 
     configuration.rf24_data_rate == RF24_250KBPS ? "selected" : "");
+  #endif
 
-  char rfPALevel[210];
+  char rfPALevel[210] = "";
+  #ifdef RADIO_RF24
   snprintf_P(rfPALevel, 210, PSTR("<option %s value='0'>Min</option>\
     <option %s value='1'>Low</option>\
     <option %s value='2'>High</option>\
@@ -293,21 +295,31 @@ void CWifiManager::handleRoot(AsyncWebServerRequest *request) {
     configuration.rf24_pa_level == RF24_PA_LOW ? "selected" : "", 
     configuration.rf24_pa_level == RF24_PA_HIGH ? "selected" : "",
     configuration.rf24_pa_level == RF24_PA_MAX ? "selected" : "");
+  #endif
 
   String mqttTopicPipes = "";
   for (int i=0; i<6; i++) {
-    char c[255];
+    char c[255] = "";
+    #ifdef RADIO_RF24
     snprintf_P(c, 255, PSTR("<label for='pipe_%i_mqttTopic'>Pipe %i MQTT topic:</label><br>\
       <input type='text' id='pipe_%i_mqttTopic' name='pipe_%i_mqttTopic' value='%s'><br>"),
       i, i+1, i, i, configuration.rf24_pipe_mqttTopic[i]
       );
+    #endif
     mqttTopicPipes += String(c);
   }
 
+  #ifdef RADIO_RF24
   response->printf(htmlDeviceConfigs.c_str(), configuration.name,
     configuration.mqttServer, configuration.mqttPort, configuration.mqttTopic,
     configuration.rf24_channel, rfDataRate, rfPALevel, configuration.rf24_pipe_suffix, mqttTopicPipes.c_str()
   );
+  #else
+  response->printf(htmlDeviceConfigs.c_str(), configuration.name,
+    configuration.mqttServer, configuration.mqttPort, configuration.mqttTopic,
+    -1, rfDataRate, rfPALevel, "", mqttTopicPipes.c_str()
+  );
+  #endif
 
   printHTMLBottom(response);
   request->send(response);
@@ -362,6 +374,7 @@ void CWifiManager::handleConfig(AsyncWebServerRequest *request) {
   mqttTopic.toCharArray(configuration.mqttTopic, sizeof(configuration.mqttTopic));
   Log.infoln("MQTT Topic: %s", mqttTopic);
 
+#ifdef RADIO_RF24
   uint8_t rf24_channel = atoi(request->arg("rf24_channel").c_str());
   configuration.rf24_channel = rf24_channel;
   Log.infoln("RF24 Channel: %u", rf24_channel);
@@ -382,6 +395,7 @@ void CWifiManager::handleConfig(AsyncWebServerRequest *request) {
     String r = request->arg("pipe_" + String(i) + "_mqttTopic");
     r.toCharArray(configuration.rf24_pipe_mqttTopic[i], sizeof(configuration.rf24_pipe_mqttTopic[i]));
   }
+#endif
 
   EEPROM_saveConfig();
   
@@ -449,10 +463,12 @@ void CWifiManager::postSensorUpdate() {
   sensorJson["timestamp_iso8601"] = String(buf);
 
   sensorJson["mqttConfigTopic"] = mqttSubcribeTopicConfig;
+#ifdef RADIO_RF24
   sensorJson["rf24_data_rate"] = configuration.rf24_data_rate;
   sensorJson["rf24_pa_level"] = configuration.rf24_pa_level;
   sensorJson["rf24_pipe_suffix"] = configuration.rf24_pipe_suffix;
-  sensorJson["rf_msq_queue_size"] = messageQueue->getQueue().size();
+#endif
+  sensorJson["rf_msq_queue_size"] = messageQueue->getQueue()->size();
 
   // sensor Json
   sprintf_P(topic, "%s/json", configuration.mqttTopic);
@@ -468,7 +484,12 @@ void CWifiManager::postSensorUpdate() {
 }
 
 bool CWifiManager::isApMode() { 
+#if defined(ESP32)
   return WiFi.getMode() == WIFI_AP || WiFi.getMode() == WIFI_MODE_APSTA; 
+#elif defined(ESP8266)
+  return WiFi.getMode() == WIFI_AP || WiFi.getMode() == WIFI_AP_STA; 
+#endif
+
 }
 
 void CWifiManager::mqttCallback(char *topic, uint8_t *payload, unsigned int length) {
@@ -512,20 +533,20 @@ void CWifiManager::printHTMLBottom(Print *p) {
   int min = sec / 60;
   int hr = min / 60;
 
-  p->printf(htmlBottom.c_str(), String(DEVICE_NAME), hr, min % 60, sec % 60, dBmtoPercentage(WiFi.RSSI()), messageQueue->getQueue().size());
+  p->printf(htmlBottom.c_str(), String(DEVICE_NAME), hr, min % 60, sec % 60, dBmtoPercentage(WiFi.RSSI()), messageQueue->getQueue()->size());
 }
 
 void CWifiManager::processQueue() {
-  std::queue<CBaseMessage*> q = messageQueue->getQueue();
+  std::queue<CBaseMessage*>* q = messageQueue->getQueue();
   
   time_t now; 
   time(&now);
   char buf[sizeof "2011-10-08T07:07:09Z"];
   strftime(buf, sizeof buf, "%FT%TZ", gmtime(&now));
 
-  while(!q.empty()) {
-    CRF24Message *msg = (CRF24Message *)q.front();
-
+  while(!q->empty()) {
+    CRF24Message *msg = (CRF24Message*)q->front();
+    #ifdef RADIO_RF24
     if (!strlen(configuration.rf24_pipe_mqttTopic[msg->getPipe()])) {
       Log.warning(F("Message received on a pipe with blank MPTT topic: %s"), msg->getString());
     } else {
@@ -537,29 +558,26 @@ void CWifiManager::processQueue() {
       rfJson["uptime_millis"] = msg->getUptime();
       rfJson["voltage"] = msg->getVoltage();
       rfJson["temperature"] = msg->getTemperature()*9.0/5.0 + 32.0;
-      rfJson["temperature_unit"] = F("Fahrenheit");
+      rfJson["temperature_unit"] = F("Fahrenheit"); // TODO: make configurable
       rfJson["humidity"] = msg->getHumidity();
       rfJson["humidity_unit"] = "percent";
       rfJson["barometric_pressure"] = msg->getBaroPressure();
       rfJson["barometric_pressure_unit"] = "Pascal";
       rfJson["timestamp_iso8601"] = String(buf);
       
-      /*
       mqtt.beginPublish(topic, measureJson(rfJson), false);
       BufferingPrint bufferedClient(mqtt, 32);
       serializeJson(rfJson, bufferedClient);
       bufferedClient.flush();
       mqtt.endPublish();
-      */
+
+      String jsonStr;
+      serializeJson(rfJson, jsonStr);
+      Log.noticeln("Sent '%s' json to MQTT topic '%s'", jsonStr.c_str(), topic);
     }
-
-    //Log.infoln("Pre-pop queue size: %u", q.size());
-    q.pop();
-    //delete msg;
-    //Log.infoln("Popped queue, new size: %u", q.size());
+    #endif
+    q->pop();
+    delete msg;
   }
-
-  //Log.infoln("Final queue size: %u", q.size());
-  //delay(100);
-
+  
 }

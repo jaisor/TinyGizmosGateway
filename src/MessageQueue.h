@@ -6,5 +6,5 @@
 
 class IMessageQueue {
 public:
-  virtual std::queue<CBaseMessage*> getQueue();
+  virtual std::queue<CBaseMessage*>* getQueue();
 };

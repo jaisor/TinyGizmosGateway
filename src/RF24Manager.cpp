@@ -2,6 +2,7 @@
   #error This code is intended to run on ESP8266 or ESP32 platform!
 #endif
 
+#include <Arduino.h>
 #include <SPI.h>
 #include <RF24.h>
 #include <nRF24L01.h>
@@ -10,13 +11,16 @@
 #include "Configuration.h"
 
 #define SERIAL_DEBUG
-#ifdef ESP32
+#if defined(ESP32)
   #define CE_PIN  GPIO_NUM_22
   #define CSN_PIN GPIO_NUM_21
-#elif ARDUINO_AVR_UNO
+#elif defined(ESP8266)
+  #define CE_PIN  D4
+  #define CSN_PIN D8
+#elif defined(ARDUINO_AVR_UNO)
   #define CE_PIN  9
   #define CSN_PIN 10
-#elif SEEED_XIAO_M0
+#elif defined(SEEED_XIAO_M0)
   #define CE_PIN  D2
   #define CSN_PIN D3
 #endif
@@ -31,6 +35,7 @@
 #include "RF24Message.h"
 
 CRF24Manager::CRF24Manager() {  
+#ifdef RADIO_RF24
   _radio = new RF24(CE_PIN, CSN_PIN);
   
   if (!_radio->begin()) {
@@ -65,14 +70,18 @@ CRF24Manager::CRF24Manager() {
       Log.verboseln(buffer);
     }
   }
+#endif
 }
 
 CRF24Manager::~CRF24Manager() { 
+#ifdef RADIO_RF24
   delete _radio;
+#endif
   Log.noticeln("CRF24Manager destroyed");
 }
 
 void CRF24Manager::loop() {
+#ifdef RADIO_RF24
   uint8_t pipe;
   if (_radio->available(&pipe)) {
     intLEDOn();
@@ -81,6 +90,7 @@ void CRF24Manager::loop() {
       uint8_t buf[bytes];
       _radio->read(&buf, bytes);
       CRF24Message *msg = new CRF24Message(pipe, &buf, bytes);
+
       Log.infoln(F("Received %i bytes message: %s adding to queue of size %i"), bytes, msg->getString().c_str(), _queue.size());
       _queue.push(msg);
     } else {
@@ -88,4 +98,5 @@ void CRF24Manager::loop() {
     }
     intLEDOff();
   }
+#endif
 }

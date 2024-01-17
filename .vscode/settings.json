@@ -52,6 +52,9 @@
         "random": "cpp",
         "ratio": "cpp",
         "string_view": "cpp",
-        "iomanip": "cpp"
+        "iomanip": "cpp",
+        "compare": "cpp",
+        "ranges": "cpp",
+        "variant": "cpp"
     }
 }

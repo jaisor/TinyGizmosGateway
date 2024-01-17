@@ -26,5 +26,5 @@ public:
   virtual void loop();
 
   // IMessageQueue
-  virtual std::queue<CBaseMessage*> getQueue() { return _queue; };
+  virtual std::queue<CBaseMessage*>* getQueue() { return &_queue; };
 };
