@@ -15,4 +15,5 @@ public:
     const uint8_t getPipe() { return pipe; };
     virtual const String getString() { return String(""); }
     virtual const uint8_t getId() = 0;
+    virtual const bool isError() { return false; }
 };

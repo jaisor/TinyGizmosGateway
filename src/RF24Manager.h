@@ -1,7 +1,9 @@
 #pragma once
 
 #include <ArduinoJson.h>
-#include <RF24.h>
+#ifdef RADIO_RF24
+  #include <RF24.h>
+#endif
 #include <queue>
 
 #include "BaseManager.h"
@@ -13,8 +15,11 @@ private:
   unsigned long tMillis;
   StaticJsonDocument<2048> sensorJson;
   StaticJsonDocument<2048> configJson;
+  bool error;
 
+#ifdef RADIO_RF24
   RF24 *_radio;
+#endif
 
   std::queue<CBaseMessage*> _queue;
     
@@ -27,4 +32,5 @@ public:
 
   // IMessageQueue
   virtual std::queue<CBaseMessage*>* getQueue() { return &_queue; };
+  virtual const bool isError() { return error; }
 };

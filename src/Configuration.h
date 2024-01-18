@@ -35,7 +35,7 @@
   #define WEB_SERVER_PORT 80
 #endif
 
-//#define RADIO_RF24
+#define RADIO_RF24
 #ifdef RADIO_RF24
   #define RF24_CHANNEL 76
   #define RF24_DATA_RATE RF24_250KBPS
@@ -89,3 +89,4 @@ unsigned long CONFIG_getUpTime();
 
 void intLEDOn();
 void intLEDOff();
+void intLEDBlink(uint16_t ms);

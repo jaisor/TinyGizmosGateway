@@ -1,5 +1,4 @@
 #include <Arduino.h>
-//#include <functional>
 #include <ArduinoLog.h>
 
 #if !( defined(ESP32) ) && !( defined(ESP8266) )
@@ -44,6 +43,14 @@ void setup() {
 
   rf24Manager = new CRF24Manager();
   wifiManager = new CWifiManager(rf24Manager);
+
+  if (rf24Manager->isError() || wifiManager->isError()) {
+    Log.errorln("rf24Manager->isError()=%i; wifiManager->isError()=%i", rf24Manager->isError(), wifiManager->isError());
+    while(true) {
+      intLEDBlink(250);
+      delay(250);
+    }
+  }
 
   Log.infoln("Initialized");
 }

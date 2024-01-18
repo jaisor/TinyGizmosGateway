@@ -8,10 +8,11 @@
 #include <ezTime.h>
 #include <ElegantOTA.h>
 #include <StreamUtils.h>
-#include <RF24.h>
-
-#include "wifi/WifiManager.h"
 #include "Configuration.h"
+#ifdef RADIO_RF24
+  #include <RF24.h>
+#endif
+#include "wifi/WifiManager.h"
 #include "RF24Message.h"
 
 #define MAX_CONNECT_TIMEOUT_MS 15000 // 10 seconds to connect before creating its own AP
@@ -34,7 +35,7 @@ int dBmtoPercentage(int dBm) {
   return quality;
 }
 
-const String htmlTop PROGMEM = FPSTR("<html>\
+const String htmlTop = FPSTR("<html>\
   <head>\
   <title>%s</title>\
   <style>\
@@ -45,14 +46,14 @@ const String htmlTop PROGMEM = FPSTR("<html>\
   <body>\
   <h1>%s - Tiny Gizmos Radio Gateway</h1>");
 
-const String htmlBottom PROGMEM = FPSTR("<p><b>%s</b><br>\
+const String htmlBottom = FPSTR("<p><b>%s</b><br>\
   Uptime: <b>%02d:%02d:%02d</b><br/>\
   WiFi signal strength: <b>%i%%</b><br/>\
   RF messages in queue: <b>%i</b><br/>\
   </p></body>\
 </html>");
 
-const String htmlWifiApConnectForm PROGMEM = FPSTR("<hr><h2>Connect to WiFi Access Point (AP)</h2>\
+const String htmlWifiApConnectForm = FPSTR("<hr><h2>Connect to WiFi Access Point (AP)</h2>\
   <form method='POST' action='/connect' enctype='application/x-www-form-urlencoded'>\
     <label for='ssid'>SSID (AP Name):</label><br>\
     <input type='text' id='ssid' name='ssid'><br><br>\
@@ -61,7 +62,7 @@ const String htmlWifiApConnectForm PROGMEM = FPSTR("<hr><h2>Connect to WiFi Acce
     <input type='submit' value='Connect...'>\
   </form>");
 
-const String htmlDeviceConfigs PROGMEM = FPSTR("<hr><h2>Configs</h2>\
+const String htmlDeviceConfigs = FPSTR("<hr><h2>Configs</h2>\
   <form method='POST' action='/config' enctype='application/x-www-form-urlencoded'>\
     <label for='deviceName'>Device name:</label><br>\
     <input type='text' id='deviceName' name='deviceName' value='%s'><br>\
@@ -91,7 +92,7 @@ const String htmlDeviceConfigs PROGMEM = FPSTR("<hr><h2>Configs</h2>\
     <input type='submit' value='Set...'>\
   </form>");
 
-const String htmlRF24MQTTTopicRow PROGMEM = FPSTR("<label for='ssid'>%i pipe MQTT topic:</label><br>\
+const String htmlRF24MQTTTopicRow = FPSTR("<label for='ssid'>%i pipe MQTT topic:</label><br>\
     <input type='text' id='ssid' name='ssid'><br>");
 
 CWifiManager::CWifiManager(IMessageQueue *messageQueue): 
@@ -533,7 +534,7 @@ void CWifiManager::printHTMLBottom(Print *p) {
   int min = sec / 60;
   int hr = min / 60;
 
-  p->printf(htmlBottom.c_str(), String(DEVICE_NAME), hr, min % 60, sec % 60, dBmtoPercentage(WiFi.RSSI()), messageQueue->getQueue()->size());
+  p->printf(htmlBottom.c_str(), DEVICE_NAME, hr, min % 60, sec % 60, dBmtoPercentage(WiFi.RSSI()), messageQueue->getQueue()->size());
 }
 
 void CWifiManager::processQueue() {
@@ -548,7 +549,7 @@ void CWifiManager::processQueue() {
     CRF24Message *msg = (CRF24Message*)q->front();
     #ifdef RADIO_RF24
     if (!strlen(configuration.rf24_pipe_mqttTopic[msg->getPipe()])) {
-      Log.warning(F("Message received on a pipe with blank MPTT topic: %s"), msg->getString());
+      Log.warning(F("Message received on a pipe with blank MPTT topic: %s"), msg->getString().c_str());
     } else {
       // sensor Json
       char topic[255];

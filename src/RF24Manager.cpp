@@ -4,8 +4,9 @@
 
 #include <Arduino.h>
 #include <SPI.h>
-#include <RF24.h>
-#include <nRF24L01.h>
+#ifdef RADIO_RF24
+  #include <nRF24L01.h>
+#endif
 #include <ArduinoLog.h>
 
 #include "Configuration.h"
@@ -27,7 +28,6 @@
 
 #include <Arduino.h>
 #include <Time.h>
-#include <printf.h>
 
 #include "RF24Manager.h"
 #include "Configuration.h"
@@ -35,11 +35,13 @@
 #include "RF24Message.h"
 
 CRF24Manager::CRF24Manager() {  
+  error = false;
 #ifdef RADIO_RF24
   _radio = new RF24(CE_PIN, CSN_PIN);
   
   if (!_radio->begin()) {
     Log.errorln("Failed to initialize RF24 radio");
+    error = true;
     return;
   }
   
@@ -90,11 +92,12 @@ void CRF24Manager::loop() {
       uint8_t buf[bytes];
       _radio->read(&buf, bytes);
       CRF24Message *msg = new CRF24Message(pipe, &buf, bytes);
-
-      Log.infoln(F("Received %i bytes message: %s adding to queue of size %i"), bytes, msg->getString().c_str(), _queue.size());
-      _queue.push(msg);
+      if (!msg->isError()) {
+        Log.infoln(F("Received %i bytes message: %s adding to queue of size %i"), bytes, msg->getString().c_str(), _queue.size());
+        _queue.push(msg);
+      }
     } else {
-      Log.warningln(F("Received message length %u != expected %u, ignoring"), CRF24Message::getMessageLength(), bytes);
+      //Log.warningln(F("Received message length %u != expected %u, ignoring"), bytes, CRF24Message::getMessageLength());
     }
     intLEDOff();
   }

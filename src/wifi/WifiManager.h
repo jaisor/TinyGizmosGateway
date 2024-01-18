@@ -66,5 +66,5 @@ public:
 	CWifiManager(IMessageQueue *messageQueue);
   virtual void loop();
 
-  bool isRebootNeeded() { return rebootNeeded; }
+  virtual const bool isRebootNeeded() { return rebootNeeded; }
 };
