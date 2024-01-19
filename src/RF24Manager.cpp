@@ -37,38 +37,39 @@
 CRF24Manager::CRF24Manager() {  
   error = false;
 #ifdef RADIO_RF24
-  _radio = new RF24(CE_PIN, CSN_PIN);
+  radio = new RF24(CE_PIN, CSN_PIN);
   
-  if (!_radio->begin()) {
+  if (!radio->begin()) {
     Log.errorln("Failed to initialize RF24 radio");
     error = true;
     return;
   }
   
-  _radio->setAddressWidth(5);
-  _radio->setDataRate((rf24_datarate_e)configuration.rf24_data_rate);
-  _radio->setPALevel(configuration.rf24_pa_level);
-  _radio->setChannel(configuration.rf24_channel);
-  _radio->setPayloadSize(CRF24Message::getMessageLength());
+  radio->setAddressWidth(5);
+  radio->setDataRate((rf24_datarate_e)configuration.rf24_data_rate);
+  radio->setPALevel(configuration.rf24_pa_level);
+  radio->setChannel(configuration.rf24_channel);
+  radio->setPayloadSize(CRF24Message::getMessageLength());
   for (uint8_t i=0; i<6; i++) {
     char a[6];
     snprintf_P(a, 6, "%i%s", i, configuration.rf24_pipe_suffix);
     Log.noticeln("Opening reading pipe %i on address '%s'", i, a);
-    _radio->openReadingPipe(i, (uint8_t*)a);
+    radio->openReadingPipe(i, (uint8_t*)a);
   }
-  _radio->setRetries(15, 15);
-  _radio->startListening();
+  radio->setRetries(15, 15);
+  radio->setAutoAck(false);
+  radio->startListening();
 
   Log.infoln("Radio initialized");
   if (Log.getLevel() >= LOG_LEVEL_NOTICE) {
-    Log.noticeln("  Channel: %i", _radio->getChannel());
-    Log.noticeln("  DataRate: %i", _radio->getDataRate());
-    Log.noticeln("  PALevel: %i", _radio->getPALevel());
-    Log.noticeln("  PayloadSize: %i", _radio->getPayloadSize());
+    Log.noticeln("  Channel: %i", radio->getChannel());
+    Log.noticeln("  DataRate: %i", radio->getDataRate());
+    Log.noticeln("  PALevel: %i", radio->getPALevel());
+    Log.noticeln("  PayloadSize: %i", radio->getPayloadSize());
 
     if (Log.getLevel() >= LOG_LEVEL_VERBOSE) {
       char buffer[870] = {'\0'};
-      uint16_t used_chars = _radio->sprintfPrettyDetails(buffer);
+      uint16_t used_chars = radio->sprintfPrettyDetails(buffer);
       Log.verboseln(buffer);
     }
   }
@@ -77,7 +78,7 @@ CRF24Manager::CRF24Manager() {
 
 CRF24Manager::~CRF24Manager() { 
 #ifdef RADIO_RF24
-  delete _radio;
+  delete radio;
 #endif
   Log.noticeln("CRF24Manager destroyed");
 }
@@ -85,16 +86,16 @@ CRF24Manager::~CRF24Manager() {
 void CRF24Manager::loop() {
 #ifdef RADIO_RF24
   uint8_t pipe;
-  if (_radio->available(&pipe)) {
+  if (radio->available(&pipe)) {
     intLEDOn();
-    uint8_t bytes = _radio->getPayloadSize();
+    uint8_t bytes = radio->getPayloadSize();
     if (bytes == CRF24Message::getMessageLength()) {
       uint8_t buf[bytes];
-      _radio->read(&buf, bytes);
+      radio->read(&buf, bytes);
       CRF24Message *msg = new CRF24Message(pipe, &buf, bytes);
       if (!msg->isError()) {
-        Log.infoln(F("Received %i bytes message: %s adding to queue of size %i"), bytes, msg->getString().c_str(), _queue.size());
-        _queue.push(msg);
+        Log.infoln(F("Received %i bytes message: %s adding to queue of size %i"), bytes, msg->getString().c_str(), queue.size());
+        queue.push(msg);
       }
     } else {
       //Log.warningln(F("Received message length %u != expected %u, ignoring"), bytes, CRF24Message::getMessageLength());

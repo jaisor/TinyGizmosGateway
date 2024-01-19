@@ -18,10 +18,10 @@ private:
   bool error;
 
 #ifdef RADIO_RF24
-  RF24 *_radio;
+  RF24 *radio;
 #endif
 
-  std::queue<CBaseMessage*> _queue;
+  std::queue<CBaseMessage*> queue;
     
 public:
 	CRF24Manager();
@@ -31,6 +31,6 @@ public:
   virtual void loop();
 
   // IMessageQueue
-  virtual std::queue<CBaseMessage*>* getQueue() { return &_queue; };
+  virtual std::queue<CBaseMessage*>* getQueue() { return &queue; };
   virtual const bool isError() { return error; }
 };

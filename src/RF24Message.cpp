@@ -30,6 +30,8 @@ CRF24Message::CRF24Message(const u_int8_t pipe, const void* buf, const uint8_t l
     //Log.errorln(F("Message ID %i doesn't match MSG_UVTHP_ID(%i)"), msg.id, MSG_UVTHP_ID);
     memset(&msg, 0, getMessageLength());
     error = true;
+  } else {
+    error = false;
   }
 }
 

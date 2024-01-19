@@ -465,11 +465,12 @@ void CWifiManager::postSensorUpdate() {
 
   sensorJson["mqttConfigTopic"] = mqttSubcribeTopicConfig;
 #ifdef RADIO_RF24
+  sensorJson["rf24_channel"] = configuration.rf24_channel;
   sensorJson["rf24_data_rate"] = configuration.rf24_data_rate;
   sensorJson["rf24_pa_level"] = configuration.rf24_pa_level;
   sensorJson["rf24_pipe_suffix"] = configuration.rf24_pipe_suffix;
-#endif
   sensorJson["rf_msq_queue_size"] = messageQueue->getQueue()->size();
+#endif
 
   // sensor Json
   sprintf_P(topic, "%s/json", configuration.mqttTopic);
