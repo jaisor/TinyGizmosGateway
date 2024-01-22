@@ -50,6 +50,7 @@ const String htmlBottom = FPSTR("<p><b>%s</b><br>\
   Uptime: <b>%02d:%02d:%02d</b><br/>\
   WiFi signal strength: <b>%i%%</b><br/>\
   RF messages in queue: <b>%i</b><br/>\
+  MQTT: <b>%s</b>\
   </p></body>\
 </html>");
 
@@ -421,27 +422,13 @@ void CWifiManager::handleFactoryReset(AsyncWebServerRequest *request) {
 
 void CWifiManager::postSensorUpdate() {
 
-  if (!mqtt.connected()) {
-    if (mqtt.state() < MQTT_CONNECTED 
-      && strlen(configuration.mqttServer) && strlen(configuration.mqttTopic)) { // Reconnectable
-      Log.noticeln("Attempting to reconnect from MQTT state %i at '%s:%i' ...", mqtt.state(), configuration.mqttServer, configuration.mqttPort);
-      if (mqtt.connect(String(CONFIG_getDeviceId()).c_str())) {
-        Log.noticeln("MQTT reconnected");
-        sprintf_P(mqttSubcribeTopicConfig, "%s/%u/config", configuration.mqttTopic, CONFIG_getDeviceId());
-        bool r = mqtt.subscribe(mqttSubcribeTopicConfig);
-        Log.noticeln("Subscribed for config changes to MQTT topic '%s' success = %T", mqttSubcribeTopicConfig, r);
-      } else {
-        Log.warningln("MQTT reconnect failed, rc=%i", mqtt.state());
-      }
-    }
-    if (!mqtt.connected()) {
-      Log.noticeln("MQTT not connected %i", mqtt.state());
-      return;
-    }
-  }
-
   if (!strlen(configuration.mqttTopic)) {
     Log.warningln("Blank MQTT topic");
+    return;
+  }
+
+  if (!ensureMQTTConnected()) {
+    Log.errorln("Unable to post sensor update due to MQTT connection issues");
     return;
   }
 
@@ -535,7 +522,10 @@ void CWifiManager::printHTMLBottom(Print *p) {
   int min = sec / 60;
   int hr = min / 60;
 
-  p->printf(htmlBottom.c_str(), DEVICE_NAME, hr, min % 60, sec % 60, dBmtoPercentage(WiFi.RSSI()), messageQueue->getQueue()->size());
+  char mqttStat[255];
+  snprintf_P(mqttStat, 255, PSTR("state: %i / connected: %i"), mqtt.state(), mqtt.connected());
+
+  p->printf(htmlBottom.c_str(), DEVICE_NAME, hr, min % 60, sec % 60, dBmtoPercentage(WiFi.RSSI()), messageQueue->getQueue()->size(), mqttStat);
 }
 
 void CWifiManager::processQueue() {
@@ -545,6 +535,11 @@ void CWifiManager::processQueue() {
   time(&now);
   char buf[sizeof "2011-10-08T07:07:09Z"];
   strftime(buf, sizeof buf, "%FT%TZ", gmtime(&now));
+
+  if (!q->empty() && !ensureMQTTConnected()) {
+    Log.errorln("Unable to post queue messages due to MQTT connection issues");
+    return;
+  }
 
   while(!q->empty()) {
     CRF24Message *msg = (CRF24Message*)q->front();
@@ -581,5 +576,26 @@ void CWifiManager::processQueue() {
     q->pop();
     delete msg;
   }
-  
+}
+
+bool CWifiManager::ensureMQTTConnected() {
+  if (!mqtt.connected()) {
+    if (mqtt.state() != MQTT_CONNECTED 
+      && strlen(configuration.mqttServer) && strlen(configuration.mqttTopic)) { // Reconnectable
+      Log.noticeln("Attempting to reconnect from MQTT state %i at '%s:%i' ...", mqtt.state(), configuration.mqttServer, configuration.mqttPort);
+      if (mqtt.connect(String(CONFIG_getDeviceId()).c_str())) {
+        Log.noticeln("MQTT reconnected");
+        sprintf_P(mqttSubcribeTopicConfig, "%s/%u/config", configuration.mqttTopic, CONFIG_getDeviceId());
+        bool r = mqtt.subscribe(mqttSubcribeTopicConfig);
+        Log.noticeln("Subscribed for config changes to MQTT topic '%s' success = %T", mqttSubcribeTopicConfig, r);
+      } else {
+        Log.warningln("MQTT reconnect failed, rc=%i", mqtt.state());
+      }
+    }
+    if (!mqtt.connected()) {
+      Log.noticeln("MQTT not connected %i", mqtt.state());
+      return false;
+    }
+  }
+  return true;
 }

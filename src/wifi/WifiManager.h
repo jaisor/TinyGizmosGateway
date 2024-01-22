@@ -61,7 +61,8 @@ private:
   bool isApMode();
 
   void mqttCallback(char *topic, uint8_t *payload, unsigned int);
-    
+  bool ensureMQTTConnected();
+
 public:
 	CWifiManager(IMessageQueue *messageQueue);
   virtual void loop();
