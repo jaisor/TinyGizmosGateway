@@ -44,12 +44,20 @@ CRF24Manager::CRF24Manager() {
     error = true;
     return;
   }
+
+  uint8_t maxMessageSize = sizeof(r24_message_uvthp_t);
+  if (sizeof(r24_message_ved_inv_t) > maxMessageSize) { maxMessageSize = sizeof(r24_message_ved_inv_t); }
+  if (sizeof(r24_message_ved_mppt_t) > maxMessageSize) { maxMessageSize = sizeof(r24_message_ved_mppt_t); }
+  Log.noticeln("sizeof(r24_message_uvthp_t): %u", sizeof(r24_message_uvthp_t));
+  Log.noticeln("sizeof(r24_message_ved_inv_t): %u", sizeof(r24_message_ved_inv_t));
+  Log.noticeln("sizeof(r24_message_ved_mppt_t): %u", sizeof(r24_message_ved_mppt_t));
+  Log.infoln("Max message size: %u", maxMessageSize);
   
   radio->setAddressWidth(5);
   radio->setDataRate((rf24_datarate_e)configuration.rf24_data_rate);
   radio->setPALevel(configuration.rf24_pa_level);
   radio->setChannel(configuration.rf24_channel);
-  radio->setPayloadSize(CRF24Message::getMessageLength());
+  radio->setPayloadSize(maxMessageSize);
   for (uint8_t i=0; i<6; i++) {
     char a[6];
     snprintf_P(a, 6, "%i%s", i, configuration.rf24_pipe_suffix);
