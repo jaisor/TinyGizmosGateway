@@ -551,16 +551,39 @@ void CWifiManager::processQueue() {
       char topic[255];
       sprintf_P(topic, "%s/json", configuration.rf24_pipe_mqttTopic[msg->getPipe()]);
 
-      rfJson["message_id"] = msg->getId();
-      rfJson["uptime_millis"] = msg->getUptime();
-      rfJson["voltage"] = msg->getVoltage();
-      rfJson["temperature"] = msg->getTemperature()*9.0/5.0 + 32.0;
-      rfJson["temperature_unit"] = F("Fahrenheit"); // TODO: make configurable
-      rfJson["humidity"] = msg->getHumidity();
-      rfJson["humidity_unit"] = "percent";
-      rfJson["barometric_pressure"] = msg->getBaroPressure();
-      rfJson["barometric_pressure_unit"] = "Pascal";
+      const uint8_t messageId = *(static_cast<const uint8_t*>(msg->getMessageBuffer()));
+      rfJson.clear();
+      rfJson["message_id"] = messageId;
       rfJson["timestamp_iso8601"] = String(buf);
+      
+      switch (messageId) {
+        case MSG_UVTHP_ID: {
+            const r24_message_uvthp_t *_msg = static_cast<const r24_message_uvthp_t*>(msg->getMessageBuffer());
+            rfJson["uptime_millis"] = _msg->uptime;
+            rfJson["voltage"] = _msg->voltage;
+            rfJson["temperature"] = _msg->temperature*9.0/5.0 + 32.0;
+            rfJson["temperature_unit"] = F("Fahrenheit"); // TODO: make configurable
+            rfJson["humidity"] = _msg->humidity;
+            rfJson["humidity_unit"] = "percent";
+            rfJson["barometric_pressure"] = _msg->baro_pressure;
+            rfJson["barometric_pressure_unit"] = "Pascal";
+          } break;
+          case MSG_VED_MPPT_ID: {
+            const r24_message_ved_mppt_t *_msg = static_cast<const r24_message_ved_mppt_t*>(msg->getMessageBuffer());
+            rfJson["battery_voltage"] = _msg->b_voltage;
+            rfJson["battery_current"] = _msg->b_current;
+            rfJson["panel_voltage"] = _msg->p_voltage;
+            rfJson["panel_power"] = _msg->p_power;
+            rfJson["current_state"] = _msg->current_state;
+            rfJson["mppt"] = _msg->mppt;
+            rfJson["off_reason"] = _msg->off_reason;
+            rfJson["error"] = _msg->error;
+            rfJson["today_yield"] = _msg->today_yield;
+            rfJson["today_max_power"] = _msg->today_max_power;
+            rfJson["temperature"] = _msg->temperature*9.0/5.0 + 32.0;
+            rfJson["temperature_unit"] = F("Fahrenheit"); // TODO: make configurable
+          } break;
+      }
       
       mqtt.beginPublish(topic, measureJson(rfJson), false);
       BufferingPrint bufferedClient(mqtt, 32);

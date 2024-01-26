@@ -97,7 +97,7 @@ void CRF24Manager::loop() {
   if (radio->available(&pipe)) {
     intLEDOn();
     uint8_t bytes = radio->getPayloadSize();
-    if (bytes == CRF24Message::getMessageLength()) {
+    if (bytes == 32) {
       uint8_t buf[bytes];
       radio->read(&buf, bytes);
       CRF24Message *msg = new CRF24Message(pipe, &buf, bytes);
