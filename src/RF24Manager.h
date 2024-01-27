@@ -7,7 +7,7 @@
 #include <queue>
 
 #include "BaseManager.h"
-#include "MessageQueue.h"
+#include "RF24MessageQueue.h"
 
 class CRF24Manager: public CBaseManager, public IMessageQueue {
 
@@ -21,7 +21,7 @@ private:
   RF24 *radio;
 #endif
 
-  std::queue<CBaseMessage*> queue;
+  std::queue<const void*> queue;
     
 public:
 	CRF24Manager();
@@ -31,6 +31,6 @@ public:
   virtual void loop();
 
   // IMessageQueue
-  virtual std::queue<CBaseMessage*>* getQueue() { return &queue; };
+  virtual std::queue<const void*>* getQueue() { return &queue; };
   virtual const bool isError() { return error; }
 };

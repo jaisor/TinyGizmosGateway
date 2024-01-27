@@ -529,12 +529,12 @@ void CWifiManager::printHTMLBottom(Print *p) {
 }
 
 void CWifiManager::processQueue() {
-  std::queue<CBaseMessage*>* q = messageQueue->getQueue();
+  std::queue<const void*>* q = messageQueue->getQueue();
   
   time_t now; 
   time(&now);
-  char buf[sizeof "2011-10-08T07:07:09Z"];
-  strftime(buf, sizeof buf, "%FT%TZ", gmtime(&now));
+  char timeBuf[sizeof "2011-10-08T07:07:09Z"];
+  strftime(timeBuf, sizeof timeBuf, "%FT%TZ", gmtime(&now));
 
   if (!q->empty() && !ensureMQTTConnected()) {
     Log.errorln("Unable to post queue messages due to MQTT connection issues");
@@ -542,23 +542,25 @@ void CWifiManager::processQueue() {
   }
 
   while(!q->empty()) {
-    CRF24Message *msg = (CRF24Message*)q->front();
+    const uint8_t* t = static_cast<const uint8_t*>(q->front());
+    const uint8_t pipe = *t;
+    const uint8_t* msgBuf = t + 1;
     #ifdef RADIO_RF24
-    if (!strlen(configuration.rf24_pipe_mqttTopic[msg->getPipe()])) {
-      Log.warning(F("Message received on a pipe with blank MPTT topic: %s"), msg->getString().c_str());
+    if (!strlen(configuration.rf24_pipe_mqttTopic[pipe])) {
+      Log.warning(F("Message received on pipe %i with blank MQTT topic"), pipe);
     } else {
       // sensor Json
       char topic[255];
-      sprintf_P(topic, "%s/json", configuration.rf24_pipe_mqttTopic[msg->getPipe()]);
+      sprintf_P(topic, "%s/json", configuration.rf24_pipe_mqttTopic[pipe]);
 
-      const uint8_t messageId = *(static_cast<const uint8_t*>(msg->getMessageBuffer()));
+      const uint8_t messageId = *(static_cast<const uint8_t*>(msgBuf));
       rfJson.clear();
       rfJson["message_id"] = messageId;
-      rfJson["timestamp_iso8601"] = String(buf);
+      rfJson["timestamp_iso8601"] = String(timeBuf);
       
       switch (messageId) {
         case MSG_UVTHP_ID: {
-            const r24_message_uvthp_t *_msg = static_cast<const r24_message_uvthp_t*>(msg->getMessageBuffer());
+            const r24_message_uvthp_t *_msg = static_cast<const r24_message_uvthp_t*>((void*)msgBuf);
             rfJson["uptime_millis"] = _msg->uptime;
             rfJson["voltage"] = _msg->voltage;
             rfJson["temperature"] = _msg->temperature*9.0/5.0 + 32.0;
@@ -568,21 +570,35 @@ void CWifiManager::processQueue() {
             rfJson["barometric_pressure"] = _msg->baro_pressure;
             rfJson["barometric_pressure_unit"] = "Pascal";
           } break;
-          case MSG_VED_MPPT_ID: {
-            const r24_message_ved_mppt_t *_msg = static_cast<const r24_message_ved_mppt_t*>(msg->getMessageBuffer());
-            rfJson["battery_voltage"] = _msg->b_voltage;
-            rfJson["battery_current"] = _msg->b_current;
-            rfJson["panel_voltage"] = _msg->p_voltage;
-            rfJson["panel_power"] = _msg->p_power;
-            rfJson["current_state"] = _msg->current_state;
-            rfJson["mppt"] = _msg->mppt;
-            rfJson["off_reason"] = _msg->off_reason;
-            rfJson["error"] = _msg->error;
-            rfJson["today_yield"] = _msg->today_yield;
-            rfJson["today_max_power"] = _msg->today_max_power;
-            rfJson["temperature"] = _msg->temperature*9.0/5.0 + 32.0;
-            rfJson["temperature_unit"] = F("Fahrenheit"); // TODO: make configurable
-          } break;
+        case MSG_VED_MPPT_ID: {
+          const r24_message_ved_mppt_t *_msg = static_cast<const r24_message_ved_mppt_t*>((void*)msgBuf);
+          rfJson["battery_voltage"] = _msg->b_voltage;
+          rfJson["battery_current"] = _msg->b_current;
+          rfJson["panel_voltage"] = _msg->p_voltage;
+          rfJson["panel_power"] = _msg->p_power;
+          rfJson["current_state"] = _msg->current_state;
+          rfJson["mppt"] = _msg->mppt;
+          rfJson["off_reason"] = _msg->off_reason;
+          rfJson["error"] = _msg->error;
+          rfJson["today_yield"] = _msg->today_yield;
+          rfJson["today_max_power"] = _msg->today_max_power;
+          rfJson["temperature"] = _msg->temperature*9.0/5.0 + 32.0;
+          rfJson["temperature_unit"] = F("Fahrenheit"); // TODO: make configurable
+        } break;
+        case MSG_VED_INV_ID: {
+          const r24_message_ved_inv_t *_msg = static_cast<const r24_message_ved_inv_t*>((void*)msgBuf);
+          rfJson["battery_voltage"] = _msg->b_voltage;
+          rfJson["ac_current"] = _msg->ac_current;
+          rfJson["ac_voltage"] = _msg->ac_voltage;
+          rfJson["ac_va_power"] = _msg->ac_va_power;
+          rfJson["current_state"] = _msg->current_state;
+          rfJson["mode"] = _msg->mode;
+          rfJson["off_reason"] = _msg->off_reason;
+          rfJson["alarm"] = _msg->alarm;
+          rfJson["warning"] = _msg->warning;
+          rfJson["temperature"] = _msg->temperature*9.0/5.0 + 32.0;
+          rfJson["temperature_unit"] = F("Fahrenheit"); // TODO: make configurable
+        } break;
       }
       
       mqtt.beginPublish(topic, measureJson(rfJson), false);
@@ -597,7 +613,7 @@ void CWifiManager::processQueue() {
     }
     #endif
     q->pop();
-    delete msg;
+    delete [] t;
   }
 }
 

@@ -97,14 +97,12 @@ void CRF24Manager::loop() {
   if (radio->available(&pipe)) {
     intLEDOn();
     uint8_t bytes = radio->getPayloadSize();
-    if (bytes == 32) {
-      uint8_t buf[bytes];
-      radio->read(&buf, bytes);
-      CRF24Message *msg = new CRF24Message(pipe, &buf, bytes);
-      if (!msg->isError()) {
-        Log.infoln(F("Received %i bytes message: %s adding to queue of size %i"), bytes, msg->getString().c_str(), queue.size());
-        queue.push(msg);
-      }
+    if (bytes == RF24_MESSAGE_LENGTH) {
+      uint8_t *buf = new uint8_t[bytes + 1]; // first byte for the pipe number
+      radio->read(&buf[1], bytes);
+      Log.infoln(F("Received %i bytes, adding to queue of size %i"), bytes, queue.size());
+      queue.push(buf);
+      Log.noticeln(F("PUSHED!"));
     } else {
       //Log.warningln(F("Received message length %u != expected %u, ignoring"), bytes, CRF24Message::getMessageLength());
     }

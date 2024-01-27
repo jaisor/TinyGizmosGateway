@@ -16,7 +16,7 @@
 #include "BaseManager.h"
 #include "BaseMessage.h"
 #include "wifi/SensorProvider.h"
-#include "MessageQueue.h"
+#include "RF24MessageQueue.h"
 
 typedef enum {
   WF_CONNECTING = 0,

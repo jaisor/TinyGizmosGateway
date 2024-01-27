@@ -4,7 +4,9 @@
 #include "Configuration.h"
 #include "BaseMessage.h"
 
+#define RF24_MESSAGE_LENGTH 32
+
 class IMessageQueue {
 public:
-  virtual std::queue<CBaseMessage*>* getQueue();
+  virtual std::queue<const void*>* getQueue();
 };
