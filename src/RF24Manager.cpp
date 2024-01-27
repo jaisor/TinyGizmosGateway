@@ -77,7 +77,7 @@ CRF24Manager::CRF24Manager() {
 
     if (Log.getLevel() >= LOG_LEVEL_VERBOSE) {
       char buffer[870] = {'\0'};
-      uint16_t used_chars = radio->sprintfPrettyDetails(buffer);
+      radio->sprintfPrettyDetails(buffer);
       Log.verboseln(buffer);
     }
   }
@@ -98,11 +98,12 @@ void CRF24Manager::loop() {
     intLEDOn();
     uint8_t bytes = radio->getPayloadSize();
     if (bytes == RF24_MESSAGE_LENGTH) {
-      uint8_t *buf = new uint8_t[bytes + 1]; // first byte for the pipe number
-      radio->read(&buf[1], bytes);
-      Log.infoln(F("Received %i bytes, adding to queue of size %i"), bytes, queue.size());
+      uint8_t *buf = new uint8_t[bytes + 1];
+      buf[0] = pipe; // first byte for the pipe number
+      radio->read(buf+1, bytes);
+      Log.infoln(F("Pipe %i received %i bytes, adding to queue of size %i"), pipe, bytes, queue.size());
       queue.push(buf);
-      Log.noticeln(F("PUSHED!"));
+      Log.infoln("Pushed");
     } else {
       //Log.warningln(F("Received message length %u != expected %u, ignoring"), bytes, CRF24Message::getMessageLength());
     }

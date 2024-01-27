@@ -96,8 +96,8 @@ const String htmlDeviceConfigs = FPSTR("<hr><h2>Configs</h2>\
 const String htmlRF24MQTTTopicRow = FPSTR("<label for='ssid'>%i pipe MQTT topic:</label><br>\
     <input type='text' id='ssid' name='ssid'><br>");
 
-CWifiManager::CWifiManager(IMessageQueue *messageQueue): 
-rebootNeeded(false), wifiRetries(0), messageQueue(messageQueue) {  
+CWifiManager::CWifiManager(IMessageQueue *messageQueue)
+:rebootNeeded(false), wifiRetries(0), messageQueue(messageQueue) {  
 
   sensorJson["gw_name"] = configuration.name;
 
@@ -433,7 +433,6 @@ void CWifiManager::postSensorUpdate() {
   }
 
   char topic[255];
-  bool current = false;
   float v; int iv;
 
   iv = dBmtoPercentage(WiFi.RSSI());

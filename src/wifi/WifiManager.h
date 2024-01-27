@@ -26,13 +26,13 @@ typedef enum {
 class CWifiManager: public CBaseManager {
 
 private:
+  bool rebootNeeded;
   uint8_t wifiRetries;
   unsigned long tMillis;
   wifi_status status;
   char softAP_SSID[32];
   char SSID[32];
   char mqttSubcribeTopicConfig[255];
-  bool rebootNeeded;
   
   float batteryVoltage;
 
