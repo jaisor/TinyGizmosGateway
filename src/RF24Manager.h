@@ -21,7 +21,7 @@ private:
   RF24 *radio;
 #endif
 
-  std::queue<const void*> queue;
+  std::queue<CBaseMessage*> queue;
     
 public:
 	CRF24Manager();
@@ -31,6 +31,6 @@ public:
   virtual void loop();
 
   // IMessageQueue
-  virtual std::queue<const void*>* getQueue() { return &queue; };
+  virtual std::queue<CBaseMessage*>* getQueue() { return &queue; };
   virtual const bool isError() { return error; }
 };

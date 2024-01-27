@@ -29,10 +29,13 @@
 #include <Arduino.h>
 #include <Time.h>
 
+#include <BaseMessage.h>
+#include <RF24Message.h>
+#include <RF24Message_VED_INV.h>
+#include <RF24Message_VED_MPPT.h>
+
 #include "RF24Manager.h"
 #include "Configuration.h"
-#include "BaseMessage.h"
-#include "RF24Message.h"
 
 CRF24Manager::CRF24Manager() {  
   error = false;
@@ -98,12 +101,27 @@ void CRF24Manager::loop() {
     intLEDOn();
     uint8_t bytes = radio->getPayloadSize();
     if (bytes == RF24_MESSAGE_LENGTH) {
-      uint8_t *buf = new uint8_t[bytes + 1];
-      buf[0] = pipe; // first byte for the pipe number
-      radio->read(buf+1, bytes);
+      uint8_t *buf = new uint8_t[bytes];
+      radio->read(buf, bytes);
+      
       Log.infoln(F("Pipe %i received %i bytes, adding to queue of size %i"), pipe, bytes, queue.size());
-      queue.push(buf);
-      Log.infoln("Pushed");
+
+      CBaseMessage *msg;
+      switch (static_cast<uint8_t>(buf[0])) {
+        case MSG_UVTHP_ID:
+          msg = new CRF24Message(pipe, buf, bytes);
+          break;
+        case MSG_VED_INV_ID:
+          msg = new CRF24Message_VED_INV(pipe, buf, bytes);
+          break;
+        case MSG_VED_MPPT_ID:
+          msg = new CRF24Message_VED_MPPT(pipe, buf, bytes);
+          break;
+        default:
+          Log.warningln("Unsupported message ID %i received on pipe %i", static_cast<uint8_t>(buf[0]), pipe);
+
+      }
+      queue.push(msg);
     } else {
       //Log.warningln(F("Received message length %u != expected %u, ignoring"), bytes, CRF24Message::getMessageLength());
     }
