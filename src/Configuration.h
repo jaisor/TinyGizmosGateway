@@ -43,6 +43,43 @@
   #define RF24_PIPE_SUFFIX "STUS"
 #endif
 
+//#define BATTERY_SENSOR  // ADC A0 using 0-3.3v voltage divider
+#ifdef BATTERY_SENSOR
+  #define BATTERY_VOLTS_DIVIDER 162.3 // 162.3 - LiPo 1cell max 4.2v; 45.2 - Pb auto max 14.8v
+  #if defined(ESP32)
+    #define BATTERY_SENSOR_ADC_PIN  A0
+  #elif defined(ESP8266)
+    #define BATTERY_SENSOR_ADC_PIN  A0
+  #elif defined(SEEED_XIAO_M0)
+    #define BATTERY_SENSOR_ADC_PIN  D1
+  #else
+    #define BATTERY_SENSOR_ADC_PIN  0
+  #endif
+#endif
+
+#define TEMP_SENSOR
+#ifdef TEMP_SENSOR
+  #define TEMP_UNIT_CELSIUS     0
+  #define TEMP_UNIT_FAHRENHEIT  1
+  //#define TEMP_SENSOR_DS18B20
+  //#define TEMP_SENSOR_BME280
+  #define TEMP_SENSOR_DHT
+  #ifdef TEMP_SENSOR_DHT
+    #define TEMP_SENSOR_DHT_TYPE   DHT22
+  #endif
+  #ifdef TEMP_SENSOR_BME280
+    #define BME_SEALEVELPRESSURE_HPA (1013.25)
+    #define BME_I2C_ID 0x76
+  #endif
+  #if defined(ESP32)
+    #define TEMP_SENSOR_PIN 0
+  #elif defined(ESP8266)
+    #define TEMP_SENSOR_PIN D3
+  #elif defined(SEEED_XIAO_M0)
+    #define TEMP_SENSOR_PIN D4
+  #endif
+#endif
+
 #define INTERNAL_LED_PIN LED_BUILTIN
 
 struct configuration_t {
@@ -71,6 +108,12 @@ struct configuration_t {
   #endif
 
   char name[128];
+  #ifdef BATTERY_SENSOR
+    float battVoltsDivider;
+  #endif
+  #ifdef TEMP_SENSOR
+    uint8_t tempUnit;
+  #endif
 
   char _loaded[7]; // used to check if EEPROM was correctly set
 };

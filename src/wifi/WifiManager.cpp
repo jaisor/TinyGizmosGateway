@@ -96,8 +96,8 @@ const String htmlDeviceConfigs = FPSTR("<hr><h2>Configs</h2>\
 const String htmlRF24MQTTTopicRow = FPSTR("<label for='ssid'>%i pipe MQTT topic:</label><br>\
     <input type='text' id='ssid' name='ssid'><br>");
 
-CWifiManager::CWifiManager(IMessageQueue *messageQueue)
-:rebootNeeded(false), wifiRetries(0), messageQueue(messageQueue) {  
+CWifiManager::CWifiManager(ISensorProvider *sensorProvider, IMessageQueue *messageQueue)
+:sensorProvider(sensorProvider), rebootNeeded(false), wifiRetries(0), messageQueue(messageQueue) {  
 
   sensorJson["gw_name"] = configuration.name;
 
@@ -450,6 +450,31 @@ void CWifiManager::postSensorUpdate() {
   sensorJson["timestamp_iso8601"] = String(buf);
 
   sensorJson["mqttConfigTopic"] = mqttSubcribeTopicConfig;
+
+#ifdef TEMP_SENSOR_PIN
+  bool sensorReady = sensorProvider->isSensorReady();
+
+  if (sensorReady) {
+    bool current = false;
+    v = sensorProvider->getTemperature(&current);
+    if (configuration.tempUnit == TEMP_UNIT_FAHRENHEIT) {
+      v = v * 1.8 + 32;
+    }
+    char tunit[32];
+    snprintf(tunit, 32, (configuration.tempUnit == TEMP_UNIT_CELSIUS ? "Celsius" : (configuration.tempUnit == TEMP_UNIT_FAHRENHEIT ? "Fahrenheit" : "" )));
+    
+    if (current) {
+      sensorJson["temperature"] = v;
+      sensorJson["temperature_unit"] = tunit;
+    }
+
+    v = sensorProvider->getHumidity(&current);
+    if (current) {
+      sensorJson["humidity"] = v;
+      sensorJson["humidit_unit"] = "percent";
+    }
+  }
+#endif
 #ifdef RADIO_RF24
   sensorJson["rf24_channel"] = configuration.rf24_channel;
   sensorJson["rf24_data_rate"] = configuration.rf24_data_rate;

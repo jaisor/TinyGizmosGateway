@@ -65,6 +65,13 @@ void EEPROM_loadConfig() {
       }
     #endif
 
+    #ifdef BATTERY_SENSOR
+      configuration.battVoltsDivider = BATTERY_VOLTS_DIVIDER;
+    #endif
+    #ifdef TEMP_SENSOR
+      configuration.tempUnit = TEMP_UNIT_FAHRENHEIT;
+    #endif
+
     EEPROM_saveConfig();
   }
 

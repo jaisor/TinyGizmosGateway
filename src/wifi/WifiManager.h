@@ -38,7 +38,7 @@ private:
 
   AsyncWebServer* server;
   PubSubClient mqtt;
-  //ISensorProvider *sensorProvider;
+  ISensorProvider *sensorProvider;
   IMessageQueue *messageQueue;
 
   StaticJsonDocument<2048> sensorJson;
@@ -64,7 +64,7 @@ private:
   bool ensureMQTTConnected();
 
 public:
-	CWifiManager(IMessageQueue *messageQueue);
+	CWifiManager(ISensorProvider *sensorProvider, IMessageQueue *messageQueue);
   virtual void loop();
 
   virtual const bool isRebootNeeded() { return rebootNeeded; }
