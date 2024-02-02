@@ -67,6 +67,10 @@ const String htmlDeviceConfigs = FPSTR("<hr><h2>Configs</h2>\
   <form method='POST' action='/config' enctype='application/x-www-form-urlencoded'>\
     <label for='deviceName'>Device name:</label><br>\
     <input type='text' id='deviceName' name='deviceName' value='%s'><br>\
+    <label for='tempUnit'>Temperature units:</label><br>\
+    <select name='tempUnit' id='tempUnit'>\
+    %s\
+    </select><br>\
     <br>\
     <label for='mqttServer'>MQTT server:</label><br>\
     <input type='text' id='mqttServer' name='mqttServer' value='%s'><br>\
@@ -74,6 +78,9 @@ const String htmlDeviceConfigs = FPSTR("<hr><h2>Configs</h2>\
     <input type='text' id='mqttPort' name='mqttPort' value='%u'><br>\
     <label for='mqttTopic'>MQTT topic:</label><br>\
     <input type='text' id='mqttTopic' name='mqttTopic' value='%s'><br>\
+    <br>\
+    <label for='battVoltsDivider'>Battery volt measurement divider:</label><br>\
+    <input type='text' id='battVoltsDivider' name='battVoltsDivider' value='%.2f'><br>\
     <br>\
     <h3>Radio Settings</h3>\
     <label for='rf24_channel'>Channel:</label><br>\
@@ -100,6 +107,7 @@ CWifiManager::CWifiManager(ISensorProvider *sensorProvider, IMessageQueue *messa
 :sensorProvider(sensorProvider), rebootNeeded(false), wifiRetries(0), messageQueue(messageQueue) {  
 
   sensorJson["gw_name"] = configuration.name;
+  sensorJson["battVoltsDivider"] = configuration.battVoltsDivider;
 
   strcpy(SSID, configuration.wifiSsid);
   server = new AsyncWebServer(WEB_SERVER_PORT);
@@ -216,10 +224,11 @@ void CWifiManager::loop() {
     mqtt.loop();
     processQueue();
 
-    if (!isApMode() && millis() - tMillis > POST_UPDATE_INTERVAL &&
-      strlen(configuration.mqttServer) && strlen(configuration.mqttTopic) && mqtt.connected()) {
-      tMillis = millis();
-      postSensorUpdate();
+    if (!isApMode() && strlen(configuration.mqttServer) && strlen(configuration.mqttTopic) && mqtt.connected()) {
+      if (millis() - tMillis > POST_UPDATE_INTERVAL) {
+        tMillis = millis();
+        postSensorUpdate();
+      }
     }
 
   } else if (WiFi.status() == WL_NO_SSID_AVAIL && !isApMode()) {
@@ -277,6 +286,12 @@ void CWifiManager::handleRoot(AsyncWebServerRequest *request) {
     response->printf("<p>Connected to '%s'</p>", SSID);
   }
 
+  char tempUnit[256];
+  snprintf(tempUnit, 256, "<option %s value='0'>Celsius</option>\
+    <option %s value='1'>Fahrenheit</option>", 
+    configuration.tempUnit == TEMP_UNIT_CELSIUS ? "selected" : "", 
+    configuration.tempUnit == TEMP_UNIT_FAHRENHEIT ? "selected" : "");
+
   char rfDataRate[130] = "";
   #ifdef RADIO_RF24
   snprintf_P(rfDataRate, 130, PSTR("<option %s value='0'>1MBPS</option>\
@@ -312,13 +327,15 @@ void CWifiManager::handleRoot(AsyncWebServerRequest *request) {
   }
 
   #ifdef RADIO_RF24
-  response->printf(htmlDeviceConfigs.c_str(), configuration.name,
+  response->printf(htmlDeviceConfigs.c_str(), configuration.name, tempUnit,
     configuration.mqttServer, configuration.mqttPort, configuration.mqttTopic,
+    configuration.battVoltsDivider,
     configuration.rf24_channel, rfDataRate, rfPALevel, configuration.rf24_pipe_suffix, mqttTopicPipes.c_str()
   );
   #else
-  response->printf(htmlDeviceConfigs.c_str(), configuration.name,
+  response->printf(htmlDeviceConfigs.c_str(), configuration.name, tempUnit,
     configuration.mqttServer, configuration.mqttPort, configuration.mqttTopic,
+    configuration.battVoltsDivider,
     -1, rfDataRate, rfPALevel, "", mqttTopicPipes.c_str()
   );
   #endif
@@ -375,6 +392,14 @@ void CWifiManager::handleConfig(AsyncWebServerRequest *request) {
   String mqttTopic = request->arg("mqttTopic");
   mqttTopic.toCharArray(configuration.mqttTopic, sizeof(configuration.mqttTopic));
   Log.infoln("MQTT Topic: %s", mqttTopic);
+
+  float battVoltsDivider = atof(request->arg("battVoltsDivider").c_str());
+  configuration.battVoltsDivider = battVoltsDivider;
+  Log.infoln("battVoltsDivider: %D", battVoltsDivider);
+
+  uint16_t tempUnit = atoi(request->arg("tempUnit").c_str());
+  configuration.tempUnit = tempUnit;
+  Log.infoln("Temperature unit: %u", tempUnit);
 
 #ifdef RADIO_RF24
   uint8_t rf24_channel = atoi(request->arg("rf24_channel").c_str());
@@ -473,6 +498,14 @@ void CWifiManager::postSensorUpdate() {
       sensorJson["humidity"] = v;
       sensorJson["humidit_unit"] = "percent";
     }
+  }
+#endif
+#ifdef BATTERY_SENSOR
+  if (configuration.battVoltsDivider > 0) {
+    v = (float)(batteryVoltage + sensorProvider->getBatteryVoltage(NULL)) / 2.0;
+    sensorJson["battery_v"] = v;
+    iv = analogRead(BATTERY_SENSOR_ADC_PIN);
+    sensorJson["adc_raw"] = iv;
   }
 #endif
 #ifdef RADIO_RF24

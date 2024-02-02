@@ -43,7 +43,7 @@
   #define RF24_PIPE_SUFFIX "STUS"
 #endif
 
-//#define BATTERY_SENSOR  // ADC A0 using 0-3.3v voltage divider
+#define BATTERY_SENSOR  // ADC A0 using 0-3.3v voltage divider
 #ifdef BATTERY_SENSOR
   #define BATTERY_VOLTS_DIVIDER 162.3 // 162.3 - LiPo 1cell max 4.2v; 45.2 - Pb auto max 14.8v
   #if defined(ESP32)
