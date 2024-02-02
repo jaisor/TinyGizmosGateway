@@ -173,7 +173,7 @@ float CDevice::getBaroPressure(bool *current) {
 float CDevice::getBatteryVoltage(bool *current) {  
   if (current != NULL) { *current = true; } 
   int vi = analogRead(BATTERY_SENSOR_ADC_PIN);
-  float v = (float)vi/BATTERY_VOLTS_DIVIDER;
+  float v = (float)vi/configuration.battVoltsDivider;
   Log.verboseln(F("Battery voltage raw: %i volts: %D"), vi, v);
   return v; 
 }

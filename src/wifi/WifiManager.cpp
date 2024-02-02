@@ -49,6 +49,8 @@ const String htmlTop = FPSTR("<html>\
 const String htmlBottom = FPSTR("<p><b>%s</b><br>\
   Uptime: <b>%02d:%02d:%02d</b><br/>\
   WiFi signal strength: <b>%i%%</b><br/>\
+  Temperature: <b>%0.2f %s</b><br/>\
+  Battery: <b>%0.2fV</b><br/>\
   RF messages in queue: <b>%i</b><br/>\
   MQTT: <b>%s</b>\
   </p></body>\
@@ -502,8 +504,7 @@ void CWifiManager::postSensorUpdate() {
 #endif
 #ifdef BATTERY_SENSOR
   if (configuration.battVoltsDivider > 0) {
-    v = (float)(batteryVoltage + sensorProvider->getBatteryVoltage(NULL)) / 2.0;
-    sensorJson["battery_v"] = v;
+    sensorJson["battery_v"] = sensorProvider->getBatteryVoltage(NULL);
     iv = analogRead(BATTERY_SENSOR_ADC_PIN);
     sensorJson["adc_raw"] = iv;
   }
@@ -582,7 +583,12 @@ void CWifiManager::printHTMLBottom(Print *p) {
   char mqttStat[255];
   snprintf_P(mqttStat, 255, PSTR("state: %i / connected: %i"), mqtt.state(), mqtt.connected());
 
-  p->printf(htmlBottom.c_str(), DEVICE_NAME, hr, min % 60, sec % 60, dBmtoPercentage(WiFi.RSSI()), messageQueue->getQueue()->size(), mqttStat);
+  float t = sensorProvider->getTemperature(NULL);
+  p->printf(htmlBottom.c_str(), DEVICE_NAME, hr, min % 60, sec % 60, 
+    dBmtoPercentage(WiFi.RSSI()),
+    configuration.tempUnit == TEMP_UNIT_CELSIUS ? t : t * 1.8 + 32, configuration.tempUnit == TEMP_UNIT_CELSIUS ? "C" : "F",
+    sensorProvider->getBatteryVoltage(NULL),
+    messageQueue->getQueue()->size(), mqttStat);
 }
 
 void CWifiManager::processQueue() {

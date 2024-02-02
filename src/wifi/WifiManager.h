@@ -34,8 +34,6 @@ private:
   char SSID[32];
   char mqttSubcribeTopicConfig[255];
   
-  float batteryVoltage;
-
   AsyncWebServer* server;
   PubSubClient mqtt;
   ISensorProvider *sensorProvider;

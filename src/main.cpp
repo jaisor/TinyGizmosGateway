@@ -68,6 +68,7 @@ void loop() {
     Log.noticeln("Device booted smoothly!");
   }
 
+  device->loop();
   rf24Manager->loop();
   wifiManager->loop();
 
