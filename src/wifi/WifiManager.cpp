@@ -142,6 +142,7 @@ void CWifiManager::connect() {
 
     if (WiFi.softAP(softAP_SSID, WIFI_FALLBACK_PASS)) {
       wifiRetries = 0;
+      tsAPReboot = millis();
       Log.infoln("Wifi AP '%s' created, listening on '%s'", softAP_SSID, WiFi.softAPIP().toString().c_str());
     } else {
       Log.errorln("Wifi AP faliled");
@@ -233,9 +234,18 @@ void CWifiManager::loop() {
       }
     }
 
+    if (isApMode() /* && has config for real AP */) {
+      if (WiFi.softAPgetStationNum() > 0)  {
+        tsAPReboot = millis();
+      } else if (millis() - tsAPReboot > 60000) {
+        // Reboot if in AP mode and no connected clients, in hope of connecting to real AP
+        Log.infoln(F("Rebooting after a minute in AP with no connections"));
+        rebootNeeded = true;
+      }
+    }
+
   } else if (WiFi.status() == WL_NO_SSID_AVAIL && !isApMode()) {
     // Can't find desired AP
-
     if (millis() - tMillis > MAX_CONNECT_TIMEOUT_MS) {
       tMillis = millis();
       if (++wifiRetries > 1) {
@@ -249,28 +259,25 @@ void CWifiManager::loop() {
       //Log.infoln("WifiMode == %i", WiFi.getMode());
     }
   } else {
-  // WiFi is down
-
-  switch (status) {
-    case WF_LISTENING: {
-    Log.infoln("Disconnecting %i", status);
-    server->end();
-    status = WF_CONNECTING;
-    connect();
-    } break;
-    case WF_CONNECTING: {
-      if (millis() - tMillis > MAX_CONNECT_TIMEOUT_MS) {
-        tMillis = millis();
-        if (++wifiRetries > 3) {
-          Log.warningln("Connecting failed (wifi status %i) after %l ms, create an AP instead", WiFi.status(), (millis() - tMillis));
-          strcpy(SSID, "");
+    // WiFi is down
+    switch (status) {
+      case WF_LISTENING: {
+      Log.infoln("Disconnecting %i", status);
+      server->end();
+      status = WF_CONNECTING;
+      connect();
+      } break;
+      case WF_CONNECTING: {
+        if (millis() - tMillis > MAX_CONNECT_TIMEOUT_MS) {
+          tMillis = millis();
+          if (++wifiRetries > 3) {
+            Log.warningln("Connecting failed (wifi status %i) after %l ms, create an AP instead", WiFi.status(), (millis() - tMillis));
+            strcpy(SSID, "");
+          }
+          connect();
         }
-        connect();
-      }
-    } break;
-
-  }
-
+      } break;
+    } // switch
   }
   
 }

@@ -33,6 +33,7 @@ private:
   char softAP_SSID[32];
   char SSID[32];
   char mqttSubcribeTopicConfig[255];
+  unsigned long tsAPReboot;
   
   AsyncWebServer* server;
   PubSubClient mqtt;
