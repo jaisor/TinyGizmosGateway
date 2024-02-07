@@ -26,6 +26,9 @@ typedef enum {
 class CWifiManager: public CBaseManager {
 
 private:
+  ISensorProvider *sensorProvider;
+  IMessageQueue *messageQueue;
+  
   bool rebootNeeded;
   uint8_t wifiRetries;
   unsigned long tMillis;
@@ -37,8 +40,6 @@ private:
   
   AsyncWebServer* server;
   PubSubClient mqtt;
-  ISensorProvider *sensorProvider;
-  IMessageQueue *messageQueue;
 
   StaticJsonDocument<2048> sensorJson;
   StaticJsonDocument<2048> configJson;

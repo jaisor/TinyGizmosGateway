@@ -106,7 +106,7 @@ const String htmlRF24MQTTTopicRow = FPSTR("<label for='ssid'>%i pipe MQTT topic:
     <input type='text' id='ssid' name='ssid'><br>");
 
 CWifiManager::CWifiManager(ISensorProvider *sensorProvider, IMessageQueue *messageQueue)
-:sensorProvider(sensorProvider), rebootNeeded(false), wifiRetries(0), messageQueue(messageQueue) {  
+:sensorProvider(sensorProvider), messageQueue(messageQueue), rebootNeeded(false), wifiRetries(0) {  
 
   sensorJson["gw_name"] = configuration.name;
   sensorJson["battVoltsDivider"] = configuration.battVoltsDivider;
@@ -234,7 +234,7 @@ void CWifiManager::loop() {
       }
     }
 
-    if (isApMode() /* && has config for real AP */) {
+    if (isApMode() && strlen(configuration.wifiSsid)) {
       if (WiFi.softAPgetStationNum() > 0)  {
         tsAPReboot = millis();
       } else if (millis() - tsAPReboot > 60000) {
