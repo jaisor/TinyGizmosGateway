@@ -62,6 +62,7 @@ private:
 
   void mqttCallback(char *topic, uint8_t *payload, unsigned int);
   bool ensureMQTTConnected();
+  const String getTopicForMessageId(uint8_t msgId);
 
 public:
 	CWifiManager(ISensorProvider *sensorProvider, IMessageQueue *messageQueue);

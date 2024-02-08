@@ -614,7 +614,7 @@ void CWifiManager::processQueue() {
     } else {
       // sensor Json
       char topic[255];
-      sprintf_P(topic, "%s/json", configuration.rf24_pipe_mqttTopic[msg->getPipe()]);
+      sprintf_P(topic, "%s/%s/json", configuration.rf24_pipe_mqttTopic[msg->getPipe()], getTopicForMessageId(msg->getId()));
       
       msg->populateJson(rfJson);
       
@@ -654,4 +654,20 @@ bool CWifiManager::ensureMQTTConnected() {
     }
   }
   return true;
+}
+
+const String MSG_UVTHP_ID_STR = FPSTR("uvthp");
+const String MSG_VED_INV_ID_STR = FPSTR("ved_inv");
+const String MSG_VED_MPPT_ID_STR = FPSTR("ved_mppt");
+const String MSG_VED_BATT_ID_STR = FPSTR("ved_batt");
+const String MSG_VED_BATT_SUP_ID_STR = FPSTR("ved_batt_sup");
+const String CWifiManager::getTopicForMessageId(uint8_t msgId) {
+  switch (msgId) {
+    case MSG_UVTHP_ID: return MSG_UVTHP_ID_STR;
+    case MSG_VED_INV_ID: return MSG_VED_INV_ID_STR;
+    case MSG_VED_MPPT_ID: return MSG_VED_MPPT_ID_STR;
+    case MSG_VED_BATT_ID: return MSG_VED_BATT_ID_STR;
+    case MSG_VED_BATT_SUP_ID: return MSG_VED_BATT_SUP_ID_STR;
+    default: return FPSTR("unknown");
+  }
 }
