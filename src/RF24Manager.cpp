@@ -33,6 +33,8 @@
 #include <RF24Message.h>
 #include <RF24Message_VED_INV.h>
 #include <RF24Message_VED_MPPT.h>
+#include <RF24Message_VED_BATT.h>
+#include <RF24Message_VED_BATT_SUP.h>
 
 #include "RF24Manager.h"
 #include "Configuration.h"
@@ -111,6 +113,12 @@ void CRF24Manager::loop() {
           break;
         case MSG_VED_MPPT_ID:
           msg = new CRF24Message_VED_MPPT(pipe, buf, bytes);
+          break;
+        case MSG_VED_BATT_ID:
+          msg = new CRF24Message_VED_BATT(pipe, buf, bytes);
+          break;
+        case MSG_VED_BATT_SUP_ID:
+          msg = new CRF24Message_VED_BATT_SUP(pipe, buf, bytes);
           break;
         default:
           Log.warningln("Unsupported message ID %i received on pipe %i", static_cast<uint8_t>(buf[0]), pipe);
