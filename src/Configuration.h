@@ -4,7 +4,7 @@
 #include <functional>
 #include <ArduinoLog.h>
 
-#define LOG_LEVEL LOG_LEVEL_NOTICE
+#define LOG_LEVEL LOG_LEVEL_INFO
 
 #define WIFI    // 2.4Ghz wifi access point
 
@@ -45,7 +45,7 @@
 
 #define BATTERY_SENSOR  // ADC A0 using 0-3.3v voltage divider
 #ifdef BATTERY_SENSOR
-  #define BATTERY_VOLTS_DIVIDER 162.3 // 162.3 - LiPo 1cell max 4.2v; 45.2 - Pb auto max 14.8v
+  #define BATTERY_VOLTS_DIVIDER 57.2 // 162.3 - 4.2v max; 57.2 - 14.8v max;
   #if defined(ESP32)
     #define BATTERY_SENSOR_ADC_PIN  A0
   #elif defined(ESP8266)

@@ -52,6 +52,12 @@ CRF24Manager::CRF24Manager() {
 
   uint8_t maxMessageSize = 32;
   Log.infoln("Message size: %u", maxMessageSize);
+
+  Log.traceln(F("  sizeof(r24_message_uvthp_t)=%u"), sizeof(r24_message_uvthp_t));
+  Log.traceln(F("  sizeof(r24_message_ved_inv_t)=%u"), sizeof(r24_message_ved_inv_t));
+  Log.traceln(F("  sizeof(r24_message_ved_mppt_t)=%u"), sizeof(r24_message_ved_mppt_t));
+  Log.traceln(F("  sizeof(r24_message_ved_batt_t)=%u"), sizeof(r24_message_ved_batt_t));
+  Log.traceln(F("  sizeof(r24_message_ved_batt_sup_t)=%u"), sizeof(_r24_message_ved_batt_sup_t));
   
   radio->setAddressWidth(5);
   radio->setDataRate((rf24_datarate_e)configuration.rf24_data_rate);
