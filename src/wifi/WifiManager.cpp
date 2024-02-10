@@ -614,7 +614,7 @@ void CWifiManager::processQueue() {
     } else {
       // sensor Json
       char topic[255];
-      sprintf_P(topic, "%s/%s/json", configuration.rf24_pipe_mqttTopic[msg->getPipe()], getTopicForMessageId(msg->getId()));
+      sprintf_P(topic, "%s/%s/json", configuration.rf24_pipe_mqttTopic[msg->getPipe()], getTopicForMessageId(msg->getId()).c_str());
       
       msg->populateJson(rfJson);
       

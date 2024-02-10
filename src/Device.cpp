@@ -103,7 +103,7 @@ void CDevice::loop() {
         ds18b20->setResolution(12);
         ds18b20->requestTemperatures();
         tLastReading = millis();
-        Log.infoln(F("DS18B20 temp: %FC %FF"), _temperature, _temperature*1.8+32);
+        Log.traceln(F("DS18B20 temp: %FC %FF"), _temperature, _temperature*1.8+32);
       } else {
         //Log.infoln(F("DS18B20 conversion not complete"));
       }
@@ -120,19 +120,19 @@ void CDevice::loop() {
         // temperature
         _dht->temperature().getEvent(&event);
         if (isnan(event.temperature)) {
-          Log.warningln(F("Error reading DHT temperature!"));
+          //Log.warningln(F("Error reading DHT temperature!"));
         } else {
           _temperature = event.temperature;
-          Log.noticeln(F("DHT temp: %FC %FF"), _temperature, _temperature*1.8+32);
+          Log.traceln(F("DHT temp: %FC %FF"), _temperature, _temperature*1.8+32);
         }
         // humidity
         _dht->humidity().getEvent(&event);
         if (isnan(event.relative_humidity)) {
-          Log.warningln(F("Error reading DHT humidity!"));
+          //Log.warningln(F("Error reading DHT humidity!"));
         }
         else {
           _humidity = event.relative_humidity;
-          Log.noticeln(F("DHT humidity: %F%%"), _humidity);
+          Log.traceln(F("DHT humidity: %F%%"), _humidity);
         }
         
         tLastReading = millis();
