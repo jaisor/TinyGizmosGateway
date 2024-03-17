@@ -185,19 +185,9 @@ void CWifiManager::listen() {
   using std::placeholders::_3;
   mqtt.setCallback(std::bind( &CWifiManager::mqttCallback, this, _1,_2,_3));
 
-  if (strlen(configuration.mqttServer) && strlen(configuration.mqttTopic) && !mqtt.connected()) {
-    Log.noticeln("Attempting MQTT connection to '%s:%i' ...", configuration.mqttServer, configuration.mqttPort);
-    if (mqtt.connect(String(CONFIG_getDeviceId()).c_str())) {
-      Log.noticeln("MQTT connected");
-      
-      sprintf_P(mqttSubcribeTopicConfig, "%s/%u/config", configuration.mqttTopic, CONFIG_getDeviceId());
-      bool r = mqtt.subscribe(mqttSubcribeTopicConfig);
-      Log.noticeln("Subscribed for config changes to MQTT topic '%s' success = %T", mqttSubcribeTopicConfig, r);
-
-      postSensorUpdate();
-    } else {
-      Log.warningln("MQTT connect failed, rc=%i", mqtt.state());
-    }
+  if (!isApMode() && strlen(configuration.mqttServer) && strlen(configuration.mqttTopic)) {
+    tMillis = millis();
+    postSensorUpdate();
   }
 }
 
@@ -227,7 +217,7 @@ void CWifiManager::loop() {
     mqtt.loop();
     processQueue();
 
-    if (!isApMode() && strlen(configuration.mqttServer) && strlen(configuration.mqttTopic) && mqtt.connected()) {
+    if (!isApMode() && strlen(configuration.mqttServer) && strlen(configuration.mqttTopic)) {
       if (millis() - tMillis > POST_UPDATE_INTERVAL) {
         tMillis = millis();
         postSensorUpdate();
@@ -636,7 +626,7 @@ void CWifiManager::processQueue() {
 
 bool CWifiManager::ensureMQTTConnected() {
   if (!mqtt.connected()) {
-    if (mqtt.state() != MQTT_CONNECTED 
+    if (mqtt.state()<0 
       && strlen(configuration.mqttServer) && strlen(configuration.mqttTopic)) { // Reconnectable
       Log.noticeln("Attempting to reconnect from MQTT state %i at '%s:%i' ...", mqtt.state(), configuration.mqttServer, configuration.mqttPort);
       if (mqtt.connect(String(CONFIG_getDeviceId()).c_str())) {
